@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MOORA — Sistema de Inventario y Finanzas
 
-## Getting Started
+Sistema de control de inventario, ventas, compras, clientes/proveedores y
+finanzas para MOORA (compra y venta al por mayor y menor de perfumes,
+skincare y maquillaje).
 
-First, run the development server:
+Ver [CLAUDE.md](./CLAUDE.md) para el detalle de módulos, roles, reglas de
+seguridad y convenciones del proyecto.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- Supabase (Auth, Postgres, Storage, RLS)
+- Recharts para el dashboard
+- Vercel para despliegue
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Cómo correr el proyecto
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Instala dependencias:
 
-## Learn More
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. Copia `.env.local.example` a `.env.local` y completa las variables con los
+   datos de tu proyecto de Supabase (Project Settings → API):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Levanta el servidor de desarrollo:
 
-## Deploy on Vercel
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Abre [http://localhost:3000](http://localhost:3000).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Base de datos
+
+Las migraciones SQL viven en `supabase/migrations/`. Cada archivo se pega,
+en orden, en el editor SQL de Supabase (o se aplica con la CLI de Supabase).
