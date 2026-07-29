@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { requerirRol } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { soles, fecha } from '@/lib/format'
-import { Boton, Campo, EstadoDoc, Input, Select, Tabla, Tarjeta, TextArea, TituloPagina, Vacio } from '@/components/ui'
+import { Campo, EstadoDoc, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio } from '@/components/ui'
+import { Panel } from '@/components/panel'
+import { BotonEnviar } from '@/components/boton-enviar'
 import { crearVenta } from './actions'
 
 export const metadata = { title: 'Ventas — MOORA' }
@@ -28,17 +30,18 @@ export default async function VentasPage() {
 
   return (
     <>
-      <TituloPagina titulo="Ventas" descripcion="Últimas 100 ventas registradas" />
-
-      {puedeVender && (
-        <details className="mb-4">
-          <summary className="cursor-pointer rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white">
-            + Nueva venta
-          </summary>
-          <div className="mt-3">
-            <Tarjeta>
-              <form action={crearVenta} className="grid gap-3 sm:grid-cols-2">
-                <Campo etiqueta="Cliente" ayuda="Déjalo vacío si es venta de mostrador.">
+      <TituloPagina
+        titulo="Ventas"
+        descripcion="Últimas 100 ventas registradas"
+        accion={
+          puedeVender ? (
+            <Panel
+              etiqueta="+ Nueva venta"
+              titulo="Nueva venta"
+              descripcion="Se crea en borrador; los productos se agregan después."
+            >
+              <form action={crearVenta} className="flex flex-col gap-4">
+                <Campo etiqueta="Cliente" ayuda="Déjalo en Mostrador si es venta al paso.">
                   <Select name="cliente_id" defaultValue="">
                     <option value="">— Mostrador —</option>
                     {clientes?.map((c) => (
@@ -58,52 +61,110 @@ export default async function VentasPage() {
                   <Input name="fecha" type="date" defaultValue={hoy} />
                 </Campo>
                 <Campo etiqueta="Notas">
-                  <TextArea name="notas" rows={1} />
+                  <TextArea name="notas" rows={2} />
                 </Campo>
-                <div className="sm:col-span-2">
-                  <Boton type="submit">Crear venta y agregar productos</Boton>
-                </div>
+                <BotonEnviar className="w-full" pendienteTexto="Creando…">
+                  Crear y agregar productos
+                </BotonEnviar>
               </form>
-            </Tarjeta>
-          </div>
-        </details>
-      )}
+            </Panel>
+          ) : undefined
+        }
+      />
 
-      <Tarjeta>
-        {ventas && ventas.length > 0 ? (
-          <Tabla cabeceras={['N°', 'Fecha', 'Cliente', 'Total', 'Saldo', 'Estado', '']}>
+      {ventas && ventas.length > 0 ? (
+        <Tarjeta sinRelleno>
+          <div className="hidden px-5 py-4 md:block">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-borde text-left">
+                  {['N°', 'Fecha', 'Cliente', 'Total', 'Saldo', 'Estado', ''].map((c) => (
+                    <th
+                      key={c}
+                      className="px-2 py-2.5 text-xs font-semibold uppercase tracking-wide text-tinta-suave"
+                    >
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ventas.map((v) => {
+                  const saldo = saldoPorVenta.get(v.id) ?? 0
+                  const cliente =
+                    (v.clientes as unknown as { nombre: string } | null)?.nombre ?? 'Mostrador'
+                  return (
+                    <tr key={v.id} className="border-b border-borde-suave last:border-0">
+                      <td className="px-2 py-3 font-semibold text-tinta">{v.numero}</td>
+                      <td className="px-2 py-3 text-tinta-suave">{fecha(v.fecha)}</td>
+                      <td className="px-2 py-3">{cliente}</td>
+                      <td className="cifra px-2 py-3 font-bold">{soles(v.total)}</td>
+                      <td className="cifra px-2 py-3">
+                        {saldo > 0 ? (
+                          <span className="font-bold text-error">{soles(saldo)}</span>
+                        ) : v.estado === 'confirmada' ? (
+                          <span className="text-sm font-semibold text-exito">Pagada</span>
+                        ) : (
+                          <span className="text-tinta-tenue">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-3"><EstadoDoc estado={v.estado} /></td>
+                      <td className="px-2 py-3 text-right">
+                        <Link
+                          href={`/ventas/${v.id}`}
+                          className="text-sm font-semibold text-vino underline-offset-4 hover:underline"
+                        >
+                          Abrir
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-2.5 p-4 md:hidden">
             {ventas.map((v) => {
               const saldo = saldoPorVenta.get(v.id) ?? 0
-              const cliente = (v.clientes as unknown as { nombre: string } | null)?.nombre ?? 'Mostrador'
+              const cliente =
+                (v.clientes as unknown as { nombre: string } | null)?.nombre ?? 'Mostrador'
               return (
-                <tr key={v.id}>
-                  <td className="px-3 py-2 font-medium text-gray-900">{v.numero}</td>
-                  <td className="px-3 py-2 text-gray-600">{fecha(v.fecha)}</td>
-                  <td className="px-3 py-2">{cliente}</td>
-                  <td className="px-3 py-2 font-medium">{soles(v.total)}</td>
-                  <td className="px-3 py-2">
-                    {saldo > 0 ? (
-                      <span className="font-medium text-red-600">{soles(saldo)}</span>
-                    ) : v.estado === 'confirmada' ? (
-                      <span className="text-green-700">Pagada</span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2"><EstadoDoc estado={v.estado} /></td>
-                  <td className="px-3 py-2 text-right">
-                    <Link href={`/ventas/${v.id}`} className="text-sm text-gray-600 underline">
-                      Abrir
-                    </Link>
-                  </td>
-                </tr>
+                <Link
+                  key={v.id}
+                  href={`/ventas/${v.id}`}
+                  className="block rounded-xl border border-borde p-4"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-tinta">{cliente}</p>
+                      <p className="truncate text-xs text-tinta-suave">
+                        {v.numero} · {fecha(v.fecha)}
+                      </p>
+                    </div>
+                    <EstadoDoc estado={v.estado} />
+                  </div>
+                  <div className="flex justify-between py-0.5 text-sm">
+                    <span className="text-tinta-suave">Total</span>
+                    <span className="cifra font-bold text-tinta">{soles(v.total)}</span>
+                  </div>
+                  {saldo > 0 && (
+                    <div className="flex justify-between py-0.5 text-sm">
+                      <span className="text-tinta-suave">Saldo</span>
+                      <span className="cifra font-bold text-error">{soles(saldo)}</span>
+                    </div>
+                  )}
+                </Link>
               )
             })}
-          </Tabla>
-        ) : (
-          <Vacio mensaje="Todavía no hay ventas registradas." />
-        )}
-      </Tarjeta>
+          </div>
+        </Tarjeta>
+      ) : (
+        <Vacio
+          mensaje="Aún no hay ventas registradas"
+          descripcion="Registra tu primera venta del día para verla aquí."
+        />
+      )}
     </>
   )
 }

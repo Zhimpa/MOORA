@@ -4,9 +4,9 @@ import { requerirRol } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { soles, numero, fecha } from '@/lib/format'
 import { METODOS_PAGO } from '@/lib/tipos'
-import {
-  Aviso, Boton, Campo, EstadoDoc, Input, Select, Tabla, Tarjeta, TextArea, TituloPagina, Vacio,
-} from '@/components/ui'
+import { Aviso, Campo, EstadoDoc, Input, Select, Tarjeta, TituloPagina, Vacio } from '@/components/ui'
+import { Panel, ConfirmarAccion } from '@/components/panel'
+import { BotonEnviar } from '@/components/boton-enviar'
 import {
   agregarItemVenta, quitarItemVenta, aplicarDescuentoVenta,
   confirmarVenta, anularVenta, registrarPagoVenta,
@@ -34,7 +34,7 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
     supabase.from('pagos_venta').select('*').eq('venta_id', id).order('fecha'),
     supabase
       .from('v_stock_actual')
-      .select('variante_id, sku, producto, variante, stock, precio_venta_menor, precio_venta_mayor')
+      .select('variante_id, sku, producto, variante, stock')
       .eq('activo', true)
       .order('producto'),
   ])
@@ -43,12 +43,15 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
   const saldo = Number(venta.total) - pagado
   const esBorrador = venta.estado === 'borrador'
   const puedeOperar = perfil.rol === 'admin' || perfil.rol === 'vendedor'
-  const cliente = venta.clientes as { nombre: string; tipo: string; telefono: string | null } | null
+  const cliente = venta.clientes as unknown as { nombre: string; telefono: string | null } | null
   const hoy = new Date().toISOString().slice(0, 10)
 
   return (
     <>
-      <Link href="/ventas" className="mb-3 inline-block text-sm text-gray-600 underline">
+      <Link
+        href="/ventas"
+        className="mb-4 inline-block text-sm font-semibold text-vino underline-offset-4 hover:underline"
+      >
         ← Volver a ventas
       </Link>
 
@@ -62,7 +65,7 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
 
       {esBorrador && (
         <div className="mb-4">
-          <Aviso tipo="ok">
+          <Aviso tipo="alerta">
             Esta venta está en <strong>borrador</strong>: todavía no descuenta stock. Agrega los
             productos y luego confírmala.
           </Aviso>
@@ -71,180 +74,218 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          {esBorrador && puedeOperar && (
-            <Tarjeta titulo="Agregar producto">
-              <form action={agregarItemVenta} className="grid gap-3 sm:grid-cols-4">
-                <input type="hidden" name="venta_id" value={venta.id} />
-                <div className="sm:col-span-2">
-                  <Campo etiqueta="Producto">
-                    <Select name="variante_id" required defaultValue="">
-                      <option value="" disabled>Elige un producto…</option>
-                      {variantes?.map((v) => (
-                        <option key={v.variante_id} value={v.variante_id}>
-                          {v.producto} · {v.variante} (stock {numero(v.stock)})
-                        </option>
-                      ))}
-                    </Select>
-                  </Campo>
-                </div>
-                <Campo etiqueta="Cantidad">
-                  <Input name="cantidad" type="number" step="0.01" min="0.01" defaultValue="1" required />
-                </Campo>
-                <Campo etiqueta="Precio (S/)" ayuda="Vacío = precio de lista.">
-                  <Input name="precio_unitario" type="number" step="0.01" min="0" placeholder="Automático" />
-                </Campo>
-                <div className="sm:col-span-4">
-                  <Boton type="submit">Agregar</Boton>
-                </div>
-              </form>
-            </Tarjeta>
-          )}
-
-          <div className="mt-4">
-            <Tarjeta titulo="Productos de esta venta">
-              {items && items.length > 0 ? (
-                <Tabla cabeceras={['Producto', 'Cant.', 'Precio', 'Subtotal', '']}>
-                  {items.map((it) => {
-                    const v = it.variantes as unknown as {
-                      sku: string; nombre: string; productos: { nombre: string } | null
-                    }
-                    return (
-                      <tr key={it.id}>
-                        <td className="px-3 py-2">
-                          <span className="block font-medium text-gray-900">{v?.productos?.nombre}</span>
-                          <span className="text-xs text-gray-500">{v?.nombre} · {v?.sku}</span>
-                        </td>
-                        <td className="px-3 py-2">{numero(it.cantidad)}</td>
-                        <td className="px-3 py-2">{soles(it.precio_unitario)}</td>
-                        <td className="px-3 py-2 font-medium">{soles(it.subtotal)}</td>
-                        <td className="px-3 py-2 text-right">
-                          {esBorrador && puedeOperar && (
-                            <form action={quitarItemVenta}>
-                              <input type="hidden" name="id" value={it.id} />
-                              <input type="hidden" name="venta_id" value={venta.id} />
-                              <button type="submit" className="text-sm text-red-600 underline">
-                                Quitar
-                              </button>
-                            </form>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </Tabla>
-              ) : (
-                <Vacio mensaje="Esta venta todavía no tiene productos." />
-              )}
-            </Tarjeta>
-          </div>
+          <Tarjeta
+            titulo="Productos de esta venta"
+            accion={
+              esBorrador && puedeOperar ? (
+                <Panel etiqueta="+ Agregar" titulo="Agregar producto" descripcion={`Venta ${venta.numero}`}>
+                  <form action={agregarItemVenta} className="flex flex-col gap-4">
+                    <input type="hidden" name="venta_id" value={venta.id} />
+                    <Campo etiqueta="Producto">
+                      <Select name="variante_id" required defaultValue="">
+                        <option value="" disabled>Elige un producto…</option>
+                        {variantes?.map((v) => (
+                          <option key={v.variante_id} value={v.variante_id}>
+                            {v.producto} · {v.variante} (stock {numero(v.stock)})
+                          </option>
+                        ))}
+                      </Select>
+                    </Campo>
+                    <Campo etiqueta="Cantidad">
+                      <Input name="cantidad" type="number" step="0.01" min="0.01" defaultValue="1" required />
+                    </Campo>
+                    <Campo etiqueta="Precio unitario (S/)" ayuda="Vacío = precio de lista según el tipo de venta.">
+                      <Input name="precio_unitario" type="number" step="0.01" min="0" placeholder="Automático" />
+                    </Campo>
+                    <BotonEnviar className="w-full">Agregar a la venta</BotonEnviar>
+                  </form>
+                </Panel>
+              ) : undefined
+            }
+          >
+            {items && items.length > 0 ? (
+              <ul className="flex flex-col divide-y divide-borde-suave">
+                {items.map((it) => {
+                  const v = it.variantes as unknown as {
+                    sku: string; nombre: string; productos: { nombre: string } | null
+                  }
+                  return (
+                    <li key={it.id} className="flex items-start justify-between gap-3 py-3 first:pt-0">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-tinta">{v?.productos?.nombre}</p>
+                        <p className="text-xs text-tinta-suave">{v?.nombre} · {v?.sku}</p>
+                        <p className="cifra mt-1 text-xs text-tinta-suave">
+                          {numero(it.cantidad)} × {soles(it.precio_unitario)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="cifra font-bold text-tinta">{soles(it.subtotal)}</p>
+                        {esBorrador && puedeOperar && (
+                          <form action={quitarItemVenta} className="mt-1">
+                            <input type="hidden" name="id" value={it.id} />
+                            <input type="hidden" name="venta_id" value={venta.id} />
+                            <button type="submit" className="text-xs font-semibold text-error underline-offset-4 hover:underline">
+                              Quitar
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <Vacio
+                mensaje="Esta venta todavía no tiene productos"
+                descripcion="Agrega al menos uno para poder confirmarla."
+              />
+            )}
+          </Tarjeta>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <Tarjeta titulo="Resumen">
-            <dl className="space-y-2 text-sm">
+            <dl className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-600">Subtotal</dt>
-                <dd>{soles(venta.subtotal)}</dd>
+                <dt className="text-tinta-suave">Subtotal</dt>
+                <dd className="cifra">{soles(venta.subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600">Descuento</dt>
-                <dd>− {soles(venta.descuento)}</dd>
+                <dt className="text-tinta-suave">Descuento</dt>
+                <dd className="cifra">− {soles(venta.descuento)}</dd>
               </div>
-              <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold">
-                <dt>Total</dt>
-                <dd>{soles(venta.total)}</dd>
+              <div className="flex justify-between border-t border-borde pt-2 text-base">
+                <dt className="font-semibold">Total</dt>
+                <dd className="cifra font-bold">{soles(venta.total)}</dd>
               </div>
               {venta.estado === 'confirmada' && (
                 <>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Pagado</dt>
-                    <dd className="text-green-700">{soles(pagado)}</dd>
+                    <dt className="text-tinta-suave">Pagado</dt>
+                    <dd className="cifra text-exito">{soles(pagado)}</dd>
                   </div>
-                  <div className="flex justify-between font-medium">
+                  <div className="flex justify-between font-semibold">
                     <dt>Saldo</dt>
-                    <dd className={saldo > 0 ? 'text-red-600' : 'text-green-700'}>{soles(saldo)}</dd>
+                    <dd className={`cifra ${saldo > 0 ? 'text-error' : 'text-exito'}`}>
+                      {soles(saldo)}
+                    </dd>
                   </div>
                 </>
               )}
             </dl>
 
             {esBorrador && puedeOperar && (
-              <>
-                <form action={aplicarDescuentoVenta} className="mt-4 flex gap-2 border-t border-gray-200 pt-3">
+              <div className="mt-4 flex flex-col gap-3 border-t border-borde pt-4">
+                <form action={aplicarDescuentoVenta} className="flex items-end gap-2">
                   <input type="hidden" name="venta_id" value={venta.id} />
-                  <Input name="descuento" type="number" step="0.01" min="0" defaultValue={venta.descuento} />
-                  <Boton type="submit" variante="secundario">Aplicar</Boton>
+                  <div className="flex-1">
+                    <Campo etiqueta="Descuento (S/)">
+                      <Input name="descuento" type="number" step="0.01" min="0" defaultValue={venta.descuento} />
+                    </Campo>
+                  </div>
+                  <BotonEnviar variante="secundario" pendienteTexto="…">Aplicar</BotonEnviar>
                 </form>
 
-                <form action={confirmarVenta} className="mt-3">
-                  <input type="hidden" name="venta_id" value={venta.id} />
-                  <Boton type="submit" className="w-full">Confirmar venta</Boton>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Al confirmar se descuenta el stock y la venta ya no se puede editar.
-                  </p>
-                </form>
-              </>
+                <ConfirmarAccion
+                  etiqueta="Confirmar venta"
+                  titulo="¿Confirmar esta venta?"
+                  mensaje={
+                    <>
+                      Al confirmar se descuenta el stock automáticamente. Esta acción{' '}
+                      <strong>no se puede deshacer</strong>, solo anular después.
+                    </>
+                  }
+                  etiquetaConfirmar="Sí, confirmar"
+                  className="w-full"
+                >
+                  <form action={confirmarVenta}>
+                    <input type="hidden" name="venta_id" value={venta.id} />
+                  </form>
+                </ConfirmarAccion>
+              </div>
             )}
 
             {venta.estado === 'confirmada' && puedeOperar && (
-              <details className="mt-4 border-t border-gray-200 pt-3">
-                <summary className="cursor-pointer text-sm text-red-600 underline">Anular venta</summary>
-                <form action={anularVenta} className="mt-2 space-y-2">
-                  <input type="hidden" name="venta_id" value={venta.id} />
-                  <TextArea name="motivo" rows={2} placeholder="Motivo de la anulación" />
-                  <Boton type="submit" variante="peligro" className="w-full">
-                    Anular y devolver el stock
-                  </Boton>
-                </form>
-              </details>
+              <div className="mt-4 border-t border-borde pt-4">
+                <ConfirmarAccion
+                  etiqueta="Anular venta"
+                  titulo="¿Anular esta venta?"
+                  mensaje="Se devolverá el stock al inventario y la venta quedará marcada como anulada."
+                  etiquetaConfirmar="Sí, anular"
+                  variante="peligro"
+                  className="w-full"
+                >
+                  <form action={anularVenta}>
+                    <input type="hidden" name="venta_id" value={venta.id} />
+                    <input type="hidden" name="motivo" value="Anulada desde el detalle de la venta" />
+                  </form>
+                </ConfirmarAccion>
+              </div>
             )}
           </Tarjeta>
 
           {venta.estado === 'confirmada' && (
-            <Tarjeta titulo="Pagos">
+            <Tarjeta
+              titulo="Cobros"
+              accion={
+                saldo > 0 && puedeOperar ? (
+                  <Panel
+                    etiqueta="+ Cobrar"
+                    titulo="Registrar cobro"
+                    descripcion={`Saldo pendiente: ${soles(saldo)}`}
+                  >
+                    <form action={registrarPagoVenta} className="flex flex-col gap-4">
+                      <input type="hidden" name="venta_id" value={venta.id} />
+                      <Campo etiqueta="Monto (S/)">
+                        <Input
+                          name="monto"
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={saldo}
+                          defaultValue={saldo.toFixed(2)}
+                          required
+                        />
+                      </Campo>
+                      <Campo etiqueta="Método">
+                        <Select name="metodo" defaultValue="efectivo">
+                          {METODOS_PAGO.map((m) => (
+                            <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
+                          ))}
+                        </Select>
+                      </Campo>
+                      <Campo etiqueta="Fecha">
+                        <Input name="fecha" type="date" defaultValue={hoy} />
+                      </Campo>
+                      <Campo etiqueta="Referencia">
+                        <Input name="referencia" placeholder="N° de operación" />
+                      </Campo>
+                      <BotonEnviar className="w-full">Registrar cobro</BotonEnviar>
+                    </form>
+                  </Panel>
+                ) : undefined
+              }
+            >
               {pagos && pagos.length > 0 ? (
-                <ul className="mb-3 space-y-2 text-sm">
+                <ul className="flex flex-col divide-y divide-borde-suave text-sm">
                   {pagos.map((p) => (
-                    <li key={p.id} className="flex justify-between border-b border-gray-100 pb-1">
-                      <span className="text-gray-600">
+                    <li key={p.id} className="flex justify-between py-2 first:pt-0">
+                      <span className="capitalize text-tinta-suave">
                         {fecha(p.fecha)} · {p.metodo}
                       </span>
-                      <span className="font-medium">{soles(p.monto)}</span>
+                      <span className="cifra font-semibold">{soles(p.monto)}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mb-3 text-sm text-gray-500">Sin pagos registrados.</p>
-              )}
-
-              {saldo > 0 && puedeOperar && (
-                <form action={registrarPagoVenta} className="space-y-2 border-t border-gray-200 pt-3">
-                  <input type="hidden" name="venta_id" value={venta.id} />
-                  <Campo etiqueta="Monto (S/)">
-                    <Input name="monto" type="number" step="0.01" min="0.01" max={saldo} defaultValue={saldo.toFixed(2)} required />
-                  </Campo>
-                  <Campo etiqueta="Método">
-                    <Select name="metodo" defaultValue="efectivo">
-                      {METODOS_PAGO.map((m) => (
-                        <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
-                      ))}
-                    </Select>
-                  </Campo>
-                  <Campo etiqueta="Fecha">
-                    <Input name="fecha" type="date" defaultValue={hoy} />
-                  </Campo>
-                  <Campo etiqueta="Referencia">
-                    <Input name="referencia" placeholder="N° de operación" />
-                  </Campo>
-                  <Boton type="submit" className="w-full">Registrar pago</Boton>
-                </form>
+                <p className="text-sm text-tinta-suave">Sin cobros registrados.</p>
               )}
             </Tarjeta>
           )}
 
           {venta.notas && (
             <Tarjeta titulo="Notas">
-              <p className="text-sm text-gray-600">{venta.notas}</p>
+              <p className="text-sm text-tinta-media">{venta.notas}</p>
             </Tarjeta>
           )}
         </div>

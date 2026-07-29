@@ -1,8 +1,12 @@
 import Link from 'next/link'
 import { requerirPerfil } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import { soles, numero } from '@/lib/format'
-import { Boton, Campo, Etiqueta, Input, Select, Tabla, Tarjeta, TextArea, TituloPagina, Vacio } from '@/components/ui'
+import { numero } from '@/lib/format'
+import {
+  Boton, Campo, Etiqueta, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio,
+} from '@/components/ui'
+import { Panel } from '@/components/panel'
+import { BotonEnviar } from '@/components/boton-enviar'
 import { TIPOS_PRODUCTO } from '@/lib/tipos'
 import { crearProducto } from './actions'
 
@@ -19,7 +23,9 @@ export default async function ProductosPage({
 
   let consulta = supabase
     .from('productos')
-    .select('id, nombre, codigo, tipo, activo, categorias(nombre), marcas(nombre), variantes(id, sku, stock, precio_venta_menor, activo)')
+    .select(
+      'id, nombre, codigo, tipo, activo, categorias(nombre), marcas(nombre), variantes(id, sku, stock, stock_minimo, precio_venta_menor, activo)'
+    )
     .order('nombre')
   if (q) consulta = consulta.ilike('nombre', `%${q}%`)
 
@@ -28,26 +34,19 @@ export default async function ProductosPage({
 
   return (
     <>
-      <TituloPagina titulo="Productos" descripcion="Catálogo de perfumes, skincare y maquillaje" />
-
-      <form className="mb-4 flex gap-2">
-        <Input name="q" defaultValue={q ?? ''} placeholder="Buscar producto…" />
-        <Boton type="submit" variante="secundario">Buscar</Boton>
-      </form>
-
-      {puedeEditar && (
-        <details className="mb-4">
-          <summary className="cursor-pointer rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white">
-            + Nuevo producto
-          </summary>
-          <div className="mt-3">
-            <Tarjeta titulo="Datos del producto">
-              <form action={crearProducto} className="grid gap-3 sm:grid-cols-2">
+      <TituloPagina
+        titulo="Productos"
+        descripcion="Perfumes, skincare y maquillaje"
+        accion={
+          puedeEditar ? (
+            <Panel
+              etiqueta="+ Nuevo producto"
+              titulo="Nuevo producto"
+              descripcion="El stock se carga después, con una compra o un ajuste."
+            >
+              <form action={crearProducto} className="flex flex-col gap-4">
                 <Campo etiqueta="Nombre *">
                   <Input name="nombre" required placeholder="Perfume Good Girl" />
-                </Campo>
-                <Campo etiqueta="Código interno">
-                  <Input name="codigo" placeholder="Opcional" />
                 </Campo>
                 <Campo etiqueta="Tipo">
                   <Select name="tipo" defaultValue="perfume">
@@ -62,84 +61,156 @@ export default async function ProductosPage({
                 <Campo etiqueta="Categoría" ayuda="Si no existe, se crea sola.">
                   <Input name="categoria" placeholder="Perfumes de mujer" />
                 </Campo>
-                <div className="sm:col-span-2">
-                  <Campo etiqueta="Descripción">
-                    <TextArea name="descripcion" rows={2} />
-                  </Campo>
-                </div>
+                <Campo etiqueta="Código interno">
+                  <Input name="codigo" placeholder="Opcional" />
+                </Campo>
+                <Campo etiqueta="Descripción">
+                  <TextArea name="descripcion" rows={2} />
+                </Campo>
 
-                <div className="sm:col-span-2 mt-2 border-t border-gray-200 pt-3">
-                  <p className="mb-2 text-sm font-medium text-gray-700">Primera presentación</p>
-                  <p className="mb-3 text-xs text-gray-500">
-                    Cada presentación (tamaño o tono) se maneja por separado. El stock se carga
-                    después, con una compra o un ajuste de inventario.
+                <div className="mt-1 border-t border-borde pt-4">
+                  <p className="titulo-editorial mb-1 text-lg">Primera presentación</p>
+                  <p className="mb-4 text-xs text-tinta-suave">
+                    Cada tamaño o tono se maneja por separado: ahí viven el stock y los precios.
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-4">
                     <Campo etiqueta="SKU *">
                       <Input name="sku" required placeholder="GG-80ML" />
                     </Campo>
                     <Campo etiqueta="Presentación">
                       <Input name="variante" placeholder="80 ml / Tono 03" defaultValue="Única" />
                     </Campo>
-                    <Campo etiqueta="Precio al por menor (S/)">
-                      <Input name="precio_menor" type="number" step="0.01" min="0" defaultValue="0" />
-                    </Campo>
-                    <Campo etiqueta="Precio al por mayor (S/)">
-                      <Input name="precio_mayor" type="number" step="0.01" min="0" defaultValue="0" />
-                    </Campo>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Campo etiqueta="Precio menor (S/)">
+                        <Input name="precio_menor" type="number" step="0.01" min="0" defaultValue="0" />
+                      </Campo>
+                      <Campo etiqueta="Precio mayor (S/)">
+                        <Input name="precio_mayor" type="number" step="0.01" min="0" defaultValue="0" />
+                      </Campo>
+                    </div>
                     <Campo etiqueta="Stock mínimo" ayuda="Para avisarte cuándo reponer.">
                       <Input name="stock_minimo" type="number" step="0.01" min="0" defaultValue="0" />
                     </Campo>
                   </div>
                 </div>
 
-                <div className="sm:col-span-2">
-                  <Boton type="submit">Guardar producto</Boton>
-                </div>
+                <BotonEnviar className="w-full">Guardar producto</BotonEnviar>
               </form>
-            </Tarjeta>
-          </div>
-        </details>
-      )}
+            </Panel>
+          ) : undefined
+        }
+      />
 
-      <Tarjeta>
-        {productos && productos.length > 0 ? (
-          <Tabla cabeceras={['Producto', 'Marca', 'Presentaciones', 'Stock total', '']}>
+      <form className="mb-4 flex gap-2">
+        <Input name="q" defaultValue={q ?? ''} placeholder="Buscar producto…" />
+        <Boton type="submit" variante="secundario">Buscar</Boton>
+      </form>
+
+      {productos && productos.length > 0 ? (
+        <Tarjeta sinRelleno>
+          <div className="hidden px-5 py-4 md:block">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-borde text-left">
+                  {['Producto', 'Marca', 'Presentaciones', 'Stock total', ''].map((c) => (
+                    <th
+                      key={c}
+                      className="px-2 py-2.5 text-xs font-semibold uppercase tracking-wide text-tinta-suave"
+                    >
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {productos.map((p) => {
+                  const variantes = (p.variantes ?? []) as {
+                    id: string; sku: string; stock: number; stock_minimo: number; activo: boolean
+                  }[]
+                  const stockTotal = variantes.reduce((s, v) => s + Number(v.stock), 0)
+                  const hayBajo = variantes.some((v) => Number(v.stock) <= Number(v.stock_minimo))
+                  const marca = (p.marcas as unknown as { nombre: string } | null)?.nombre
+                  const categoria = (p.categorias as unknown as { nombre: string } | null)?.nombre
+
+                  return (
+                    <tr
+                      key={p.id}
+                      className={`border-b border-borde-suave last:border-0 ${p.activo ? '' : 'opacity-50'}`}
+                    >
+                      <td className="px-2 py-3">
+                        <Link href={`/productos/${p.id}`} className="font-semibold text-tinta hover:text-vino">
+                          {p.nombre}
+                        </Link>
+                        <span className="block text-xs text-tinta-suave">
+                          {categoria ?? 'Sin categoría'}
+                          {p.codigo && ` · ${p.codigo}`}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 text-tinta-suave">{marca ?? '—'}</td>
+                      <td className="px-2 py-3">
+                        <Etiqueta texto={`${variantes.length}`} />
+                      </td>
+                      <td className="cifra px-2 py-3">
+                        <span className={hayBajo ? 'font-bold text-error' : 'font-semibold'}>
+                          {numero(stockTotal)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <Link
+                          href={`/productos/${p.id}`}
+                          className="text-sm font-semibold text-vino underline-offset-4 hover:underline"
+                        >
+                          Ver
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-2.5 p-4 md:hidden">
             {productos.map((p) => {
-              const variantes = (p.variantes ?? []) as { id: string; sku: string; stock: number; precio_venta_menor: number; activo: boolean }[]
+              const variantes = (p.variantes ?? []) as {
+                sku: string; stock: number; stock_minimo: number
+              }[]
               const stockTotal = variantes.reduce((s, v) => s + Number(v.stock), 0)
+              const hayBajo = variantes.some((v) => Number(v.stock) <= Number(v.stock_minimo))
               const marca = (p.marcas as unknown as { nombre: string } | null)?.nombre
-              const categoria = (p.categorias as unknown as { nombre: string } | null)?.nombre
 
               return (
-                <tr key={p.id} className={p.activo ? '' : 'opacity-50'}>
-                  <td className="px-3 py-2">
-                    <Link href={`/productos/${p.id}`} className="font-medium text-gray-900 underline">
-                      {p.nombre}
-                    </Link>
-                    <span className="block text-xs text-gray-500">
-                      {categoria ?? 'Sin categoría'}
-                      {p.codigo && ` · ${p.codigo}`}
+                <Link
+                  key={p.id}
+                  href={`/productos/${p.id}`}
+                  className={`block rounded-xl border border-borde p-4 ${p.activo ? '' : 'opacity-50'}`}
+                >
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-tinta">{p.nombre}</p>
+                      <p className="truncate text-xs text-tinta-suave">{marca ?? 'Sin marca'}</p>
+                    </div>
+                    <Etiqueta texto={`${variantes.length} pres.`} />
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-tinta-suave">Stock total</span>
+                    <span className={`cifra font-bold ${hayBajo ? 'text-error' : 'text-tinta'}`}>
+                      {numero(stockTotal)}
                     </span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{marca ?? '—'}</td>
-                  <td className="px-3 py-2">
-                    <Etiqueta texto={`${variantes.length}`} />
-                  </td>
-                  <td className="px-3 py-2 font-medium">{numero(stockTotal)}</td>
-                  <td className="px-3 py-2 text-right">
-                    <Link href={`/productos/${p.id}`} className="text-sm text-gray-600 underline">
-                      Ver
-                    </Link>
-                  </td>
-                </tr>
+                  </div>
+                </Link>
               )
             })}
-          </Tabla>
-        ) : (
-          <Vacio mensaje={q ? 'Ningún producto coincide.' : 'Todavía no hay productos. Crea el primero.'} />
-        )}
-      </Tarjeta>
+          </div>
+        </Tarjeta>
+      ) : (
+        <Vacio
+          mensaje={q ? 'Ningún producto coincide' : 'Aún no hay productos en el catálogo'}
+          descripcion={
+            q ? 'Prueba con otro nombre.' : 'Crea tu primer producto con su presentación y precios.'
+          }
+        />
+      )}
     </>
   )
 }

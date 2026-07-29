@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from 'react'
 import { iniciarSesion, registrarse, type EstadoAuth } from './actions'
-import { Aviso, Boton, Campo, Input } from '@/components/ui'
+import { Aviso, Campo, Input } from '@/components/ui'
+import { BotonEnviar } from '@/components/boton-enviar'
 
 const inicial: EstadoAuth = {}
 
@@ -14,43 +15,44 @@ export default function FormularioLogin({
   errorInicial?: string
 }) {
   const [modo, setModo] = useState<'entrar' | 'crear'>('entrar')
-  const [estadoEntrar, accionEntrar, pendienteEntrar] = useActionState(iniciarSesion, inicial)
-  const [estadoCrear, accionCrear, pendienteCrear] = useActionState(registrarse, inicial)
+  const [estadoEntrar, accionEntrar] = useActionState(iniciarSesion, inicial)
+  const [estadoCrear, accionCrear] = useActionState(registrarse, inicial)
 
   const estado = modo === 'entrar' ? estadoEntrar : estadoCrear
-  const pendiente = modo === 'entrar' ? pendienteEntrar : pendienteCrear
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-crema px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">MOORA</h1>
-          <p className="text-sm text-gray-500">Inventario, ventas y finanzas</p>
+        <div className="mb-7 text-center">
+          <h1 className="titulo-editorial text-4xl text-tinta">MOORA</h1>
+          <p className="mt-1 text-sm text-tinta-suave">Inventario, ventas y finanzas</p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <div className="mb-4 flex gap-2 text-sm">
-            <button
-              type="button"
-              onClick={() => setModo('entrar')}
-              className={`flex-1 rounded-md py-2 font-medium ${
-                modo === 'entrar' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Ingresar
-            </button>
-            <button
-              type="button"
-              onClick={() => setModo('crear')}
-              className={`flex-1 rounded-md py-2 font-medium ${
-                modo === 'crear' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Crear cuenta
-            </button>
+        <div className="rounded-panel border border-borde bg-papel p-6 shadow-elevada">
+          <div className="mb-5 flex gap-1 rounded-campo bg-borde-suave p-1">
+            {(
+              [
+                ['entrar', 'Ingresar'],
+                ['crear', 'Crear cuenta'],
+              ] as const
+            ).map(([valor, texto]) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => setModo(valor)}
+                className={`min-h-10 flex-1 rounded-[7px] text-sm font-semibold transition-colors ${
+                  modo === valor ? 'bg-papel text-vino shadow-tarjeta' : 'text-tinta-suave'
+                }`}
+              >
+                {texto}
+              </button>
+            ))}
           </div>
 
-          <form action={modo === 'entrar' ? accionEntrar : accionCrear} className="space-y-4">
+          <form
+            action={modo === 'entrar' ? accionEntrar : accionCrear}
+            className="flex flex-col gap-4"
+          >
             <input type="hidden" name="redirigir" value={redirigir} />
 
             {modo === 'crear' && (
@@ -88,13 +90,16 @@ export default function FormularioLogin({
             {estado.error && <Aviso>{estado.error}</Aviso>}
             {estado.mensaje && <Aviso tipo="ok">{estado.mensaje}</Aviso>}
 
-            <Boton type="submit" disabled={pendiente} className="w-full">
-              {pendiente ? 'Un momento…' : modo === 'entrar' ? 'Ingresar' : 'Crear cuenta'}
-            </Boton>
+            <BotonEnviar
+              className="w-full"
+              pendienteTexto={modo === 'entrar' ? 'Entrando…' : 'Creando cuenta…'}
+            >
+              {modo === 'entrar' ? 'Ingresar' : 'Crear cuenta'}
+            </BotonEnviar>
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-gray-500">
+        <p className="mt-5 text-center text-xs text-tinta-suave">
           La primera cuenta que se registre queda como administrador.
         </p>
       </div>
