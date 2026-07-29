@@ -1,9 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { configSupabase } from './config'
 
 // Cliente para usar en componentes del lado del cliente (browser)
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const { url, anonKey } = configSupabase()
+  return createBrowserClient(url, anonKey)
 }
