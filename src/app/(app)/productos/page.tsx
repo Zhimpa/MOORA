@@ -3,11 +3,11 @@ import { requerirPerfil } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { numero } from '@/lib/format'
 import {
-  Boton, Campo, Etiqueta, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio,
+  Boton, Campo, Etiqueta, FotoProducto, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio,
 } from '@/components/ui'
 import { Panel } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
-import { TIPOS_PRODUCTO } from '@/lib/tipos'
+import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO } from '@/lib/tipos'
 import { crearProducto } from './actions'
 
 export const metadata = { title: 'Productos — MOORA' }
@@ -24,7 +24,7 @@ export default async function ProductosPage({
   let consulta = supabase
     .from('productos')
     .select(
-      'id, nombre, codigo, tipo, activo, categorias(nombre), marcas(nombre), variantes(id, sku, stock, stock_minimo, precio_venta_menor, activo)'
+      'id, nombre, codigo, tipo, activo, imagen_url, categorias(nombre), marcas(nombre), variantes(id, sku, stock, stock_minimo, precio_venta_menor, activo)'
     )
     .order('nombre')
   if (q) consulta = consulta.ilike('nombre', `%${q}%`)
@@ -48,6 +48,9 @@ export default async function ProductosPage({
                 <Campo etiqueta="Nombre *">
                   <Input name="nombre" required placeholder="Perfume Good Girl" />
                 </Campo>
+                <Campo etiqueta="Foto" ayuda="Ayuda a identificar el producto rápido. JPG, PNG o WEBP, máx. 5 MB.">
+                  <Input name="imagen" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                </Campo>
                 <Campo etiqueta="Tipo">
                   <Select name="tipo" defaultValue="perfume">
                     {TIPOS_PRODUCTO.map((t) => (
@@ -58,8 +61,13 @@ export default async function ProductosPage({
                 <Campo etiqueta="Marca" ayuda="Si no existe, se crea sola.">
                   <Input name="marca" placeholder="Carolina Herrera" />
                 </Campo>
-                <Campo etiqueta="Categoría" ayuda="Si no existe, se crea sola.">
-                  <Input name="categoria" placeholder="Perfumes de mujer" />
+                <Campo etiqueta="Categoría">
+                  <Select name="categoria" defaultValue="">
+                    <option value="" disabled>Selecciona una categoría</option>
+                    {CATEGORIAS_PRODUCTO.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Select>
                 </Campo>
                 <Campo etiqueta="Código interno">
                   <Input name="codigo" placeholder="Opcional" />
@@ -138,13 +146,18 @@ export default async function ProductosPage({
                       className={`border-b border-borde-suave last:border-0 ${p.activo ? '' : 'opacity-50'}`}
                     >
                       <td className="px-2 py-3">
-                        <Link href={`/productos/${p.id}`} className="font-semibold text-tinta hover:text-vino">
-                          {p.nombre}
-                        </Link>
-                        <span className="block text-xs text-tinta-suave">
-                          {categoria ?? 'Sin categoría'}
-                          {p.codigo && ` · ${p.codigo}`}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <FotoProducto url={p.imagen_url} nombre={p.nombre} />
+                          <div className="min-w-0">
+                            <Link href={`/productos/${p.id}`} className="font-semibold text-tinta hover:text-vino">
+                              {p.nombre}
+                            </Link>
+                            <span className="block text-xs text-tinta-suave">
+                              {categoria ?? 'Sin categoría'}
+                              {p.codigo && ` · ${p.codigo}`}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-2 py-3 text-tinta-suave">{marca ?? '—'}</td>
                       <td className="px-2 py-3">
@@ -186,9 +199,12 @@ export default async function ProductosPage({
                   className={`block rounded-xl border border-borde p-4 ${p.activo ? '' : 'opacity-50'}`}
                 >
                   <div className="mb-2 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-tinta">{p.nombre}</p>
-                      <p className="truncate text-xs text-tinta-suave">{marca ?? 'Sin marca'}</p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <FotoProducto url={p.imagen_url} nombre={p.nombre} />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-tinta">{p.nombre}</p>
+                        <p className="truncate text-xs text-tinta-suave">{marca ?? 'Sin marca'}</p>
+                      </div>
                     </div>
                     <Etiqueta texto={`${variantes.length} pres.`} />
                   </div>

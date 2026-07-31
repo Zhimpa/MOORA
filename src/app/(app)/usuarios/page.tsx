@@ -4,7 +4,7 @@ import { fecha } from '@/lib/format'
 import { ROLES } from '@/lib/tipos'
 import { Aviso, Etiqueta, Select, Tarjeta, TituloPagina, Vacio } from '@/components/ui'
 import { BotonEnviar } from '@/components/boton-enviar'
-import { cambiarRol, alternarUsuario } from './actions'
+import { cambiarRol, alternarUsuario, aprobarSolicitud, rechazarSolicitud } from './actions'
 
 export const metadata = { title: 'Usuarios — MOORA' }
 
@@ -13,6 +13,11 @@ export default async function UsuariosPage() {
   const supabase = await createClient()
 
   const { data: usuarios } = await supabase.from('perfiles').select('*').order('created_at')
+  const { data: solicitudes } = await supabase
+    .from('solicitudes_acceso')
+    .select('*')
+    .eq('estado', 'pendiente')
+    .order('created_at')
 
   return (
     <>
@@ -20,10 +25,49 @@ export default async function UsuariosPage() {
 
       <div className="mb-4">
         <Aviso tipo="ok">
-          Para dar de alta a alguien, pídele que se registre desde la pantalla de ingreso. Entrará
-          como <strong>vendedor</strong> y desde aquí le cambias el rol.
+          Para dar de alta a alguien, pídele que solicite acceso desde la pantalla de ingreso. Tú
+          apruebas la solicitud eligiendo su rol y Supabase le manda una invitación por correo.
         </Aviso>
       </div>
+
+      {solicitudes && solicitudes.length > 0 && (
+        <div className="mb-4">
+          <Tarjeta titulo={`Solicitudes pendientes (${solicitudes.length})`} sinRelleno>
+            <ul className="flex flex-col divide-y divide-borde-suave px-5 pb-5">
+              {solicitudes.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-tinta">{s.nombre_completo}</p>
+                    <p className="text-xs text-tinta-suave">
+                      {s.email}
+                      {s.telefono && <> · {s.telefono}</>} · Pedida {fecha(s.created_at)}
+                    </p>
+                    {s.mensaje && <p className="mt-1 text-sm text-tinta-media">{s.mensaje}</p>}
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-2">
+                    <form action={aprobarSolicitud} className="flex items-end gap-2">
+                      <input type="hidden" name="id" value={s.id} />
+                      <Select name="rol" defaultValue="vendedor" className="w-40">
+                        {ROLES.map((r) => (
+                          <option key={r.valor} value={r.valor}>{r.etiqueta}</option>
+                        ))}
+                      </Select>
+                      <BotonEnviar pendienteTexto="…">Aprobar</BotonEnviar>
+                    </form>
+                    <form action={rechazarSolicitud}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <BotonEnviar variante="peligro" pendienteTexto="…">
+                        Rechazar
+                      </BotonEnviar>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
+        </div>
+      )}
 
       <Tarjeta titulo="Qué puede hacer cada rol">
         <ul className="flex flex-col gap-3">

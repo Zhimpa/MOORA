@@ -333,3 +333,40 @@ export function Vacio({
 export function Esqueleto({ className = '' }: { className?: string }) {
   return <div className={`esqueleto ${className}`} />
 }
+
+/* ------------------------------------------------------------------ */
+/* Foto de producto: con imagen, o un marcador con la inicial          */
+/* ------------------------------------------------------------------ */
+
+export function FotoProducto({
+  url,
+  nombre,
+  tamano = 'sm',
+}: {
+  url?: string | null
+  nombre: string
+  tamano?: 'sm' | 'lg'
+}) {
+  const clases = tamano === 'sm' ? 'size-11' : 'size-24'
+
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- viene del bucket público de Supabase, sin dominio fijo
+      <img
+        src={url}
+        alt={nombre}
+        className={`${clases} shrink-0 rounded-lg border border-borde object-cover`}
+      />
+    )
+  }
+
+  return (
+    <div
+      className={`${clases} flex shrink-0 items-center justify-center rounded-lg border border-borde bg-rosa-fondo text-tinta-suave`}
+    >
+      <span className={tamano === 'sm' ? 'text-sm font-semibold' : 'text-2xl font-semibold'}>
+        {nombre.trim().charAt(0).toUpperCase() || '?'}
+      </span>
+    </div>
+  )
+}

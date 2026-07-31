@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { iniciarSesion, registrarse, type EstadoAuth } from './actions'
-import { Aviso, Campo, Input } from '@/components/ui'
+import { iniciarSesion, registrarse, solicitarAcceso, type EstadoAuth } from './actions'
+import { Aviso, Campo, Input, TextArea } from '@/components/ui'
 import { BotonEnviar } from '@/components/boton-enviar'
 
 const inicial: EstadoAuth = {}
@@ -10,15 +10,21 @@ const inicial: EstadoAuth = {}
 export default function FormularioLogin({
   redirigir,
   errorInicial,
+  permitirRegistroInicial,
 }: {
   redirigir: string
   errorInicial?: string
+  permitirRegistroInicial: boolean
 }) {
-  const [modo, setModo] = useState<'entrar' | 'crear'>('entrar')
+  const [modo, setModo] = useState<'entrar' | 'crear' | 'solicitar'>('entrar')
   const [estadoEntrar, accionEntrar] = useActionState(iniciarSesion, inicial)
   const [estadoCrear, accionCrear] = useActionState(registrarse, inicial)
+  const [estadoSolicitar, accionSolicitar] = useActionState(solicitarAcceso, inicial)
 
-  const estado = modo === 'entrar' ? estadoEntrar : estadoCrear
+  const estado =
+    modo === 'entrar' ? estadoEntrar : modo === 'crear' ? estadoCrear : estadoSolicitar
+
+  const accion = modo === 'entrar' ? accionEntrar : modo === 'crear' ? accionCrear : accionSolicitar
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-crema px-4 py-10">
@@ -32,9 +38,11 @@ export default function FormularioLogin({
           <div className="mb-5 flex gap-1 rounded-campo bg-borde-suave p-1">
             {(
               [
-                ['entrar', 'Ingresar'],
-                ['crear', 'Crear cuenta'],
-              ] as const
+                ['entrar', 'Ingresar'] as const,
+                permitirRegistroInicial
+                  ? (['crear', 'Crear cuenta'] as const)
+                  : (['solicitar', 'Solicitar acceso'] as const),
+              ]
             ).map(([valor, texto]) => (
               <button
                 key={valor}
@@ -49,15 +57,12 @@ export default function FormularioLogin({
             ))}
           </div>
 
-          <form
-            action={modo === 'entrar' ? accionEntrar : accionCrear}
-            className="flex flex-col gap-4"
-          >
+          <form action={accion} className="flex flex-col gap-4">
             <input type="hidden" name="redirigir" value={redirigir} />
 
-            {modo === 'crear' && (
+            {(modo === 'crear' || modo === 'solicitar') && (
               <Campo etiqueta="Nombre completo">
-                <Input name="nombre" type="text" autoComplete="name" placeholder="Tu nombre" />
+                <Input name="nombre" type="text" required autoComplete="name" placeholder="Tu nombre" />
               </Campo>
             )}
 
@@ -71,18 +76,35 @@ export default function FormularioLogin({
               />
             </Campo>
 
-            <Campo
-              etiqueta="Contraseña"
-              ayuda={modo === 'crear' ? 'Mínimo 8 caracteres.' : undefined}
-            >
-              <Input
-                name="password"
-                type="password"
-                required
-                autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
-                placeholder="••••••••"
-              />
-            </Campo>
+            {modo === 'solicitar' && (
+              <>
+                <Campo etiqueta="Teléfono (opcional)">
+                  <Input name="telefono" type="tel" autoComplete="tel" placeholder="+51 999 999 999" />
+                </Campo>
+                <Campo etiqueta="Mensaje (opcional)">
+                  <TextArea
+                    name="mensaje"
+                    rows={3}
+                    placeholder="Cuéntanos tu cargo en la empresa o para qué necesitas acceso."
+                  />
+                </Campo>
+              </>
+            )}
+
+            {(modo === 'entrar' || modo === 'crear') && (
+              <Campo
+                etiqueta="Contraseña"
+                ayuda={modo === 'crear' ? 'Mínimo 8 caracteres.' : undefined}
+              >
+                <Input
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
+                  placeholder="••••••••"
+                />
+              </Campo>
+            )}
 
             {errorInicial === 'inactivo' && (
               <Aviso>Tu cuenta está desactivada. Pide al administrador que la habilite.</Aviso>
@@ -92,15 +114,19 @@ export default function FormularioLogin({
 
             <BotonEnviar
               className="w-full"
-              pendienteTexto={modo === 'entrar' ? 'Entrando…' : 'Creando cuenta…'}
+              pendienteTexto={
+                modo === 'entrar' ? 'Entrando…' : modo === 'crear' ? 'Creando cuenta…' : 'Enviando…'
+              }
             >
-              {modo === 'entrar' ? 'Ingresar' : 'Crear cuenta'}
+              {modo === 'entrar' ? 'Ingresar' : modo === 'crear' ? 'Crear cuenta' : 'Solicitar acceso'}
             </BotonEnviar>
           </form>
         </div>
 
         <p className="mt-5 text-center text-xs text-tinta-suave">
-          La primera cuenta que se registre queda como administrador.
+          {permitirRegistroInicial
+            ? 'La primera cuenta que se registre queda como administrador.'
+            : '¿Ya tienes una solicitud aprobada? Revisa tu correo para activar tu cuenta.'}
         </p>
       </div>
     </main>

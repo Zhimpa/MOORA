@@ -1,8 +1,39 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+
+const EXTENSIONES_IMAGEN: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024 // 5 MB
+
+// Sube la foto del producto al bucket público 'productos' y devuelve su URL.
+// undefined = no se tocó (no se eligió archivo), nunca hace falta borrar el campo.
+async function subirImagenProducto(
+  supabase: SupabaseClient,
+  productoId: string,
+  archivo: FormDataEntryValue | null
+): Promise<string | undefined> {
+  if (!(archivo instanceof File) || archivo.size === 0) return undefined
+
+  const extension = EXTENSIONES_IMAGEN[archivo.type]
+  if (!extension) throw new Error('La imagen debe ser JPG, PNG, WEBP o GIF.')
+  if (archivo.size > TAMANO_MAXIMO_IMAGEN) throw new Error('La imagen no puede pesar más de 5 MB.')
+
+  const ruta = `${productoId}/${randomUUID()}.${extension}`
+  const { error } = await supabase.storage
+    .from('productos')
+    .upload(ruta, archivo, { contentType: archivo.type })
+  if (error) throw new Error(`No se pudo subir la imagen: ${error.message}`)
+
+  return supabase.storage.from('productos').getPublicUrl(ruta).data.publicUrl
+}
 
 // Categorías y marcas se escriben como texto libre: si no existen, se crean.
 // Es una pantalla menos que mantener.
@@ -53,6 +84,16 @@ export async function crearProducto(formData: FormData) {
 
   if (error) throw new Error(`No se pudo guardar el producto: ${error.message}`)
 
+  // La imagen se sube después de crear el producto: la ruta en el bucket usa su id.
+  const imagen_url = await subirImagenProducto(supabase, producto.id, formData.get('imagen'))
+  if (imagen_url) {
+    const { error: errorImagen } = await supabase
+      .from('productos')
+      .update({ imagen_url })
+      .eq('id', producto.id)
+    if (errorImagen) throw new Error(`Producto creado, pero la imagen falló: ${errorImagen.message}`)
+  }
+
   // Un producto sin variantes no se puede vender: creamos la primera de una vez.
   const sku = String(formData.get('sku') ?? '').trim()
   if (sku) {
@@ -78,6 +119,7 @@ export async function actualizarProducto(formData: FormData) {
   const supabase = await createClient()
   const categoria_id = await idPorNombre(supabase, 'categorias', String(formData.get('categoria') ?? ''))
   const marca_id = await idPorNombre(supabase, 'marcas', String(formData.get('marca') ?? ''))
+  const imagen_url = await subirImagenProducto(supabase, id, formData.get('imagen'))
 
   const { error } = await supabase
     .from('productos')
@@ -88,6 +130,7 @@ export async function actualizarProducto(formData: FormData) {
       tipo: String(formData.get('tipo') ?? 'otro'),
       categoria_id,
       marca_id,
+      ...(imagen_url ? { imagen_url } : {}),
     })
     .eq('id', id)
 

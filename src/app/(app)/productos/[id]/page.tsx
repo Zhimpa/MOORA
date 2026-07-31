@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation'
 import { requerirPerfil } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { soles, numero } from '@/lib/format'
-import { Campo, Etiqueta, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio } from '@/components/ui'
+import {
+  Campo, Etiqueta, FotoProducto, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio,
+} from '@/components/ui'
 import { Panel } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
-import { TIPOS_PRODUCTO } from '@/lib/tipos'
+import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO } from '@/lib/tipos'
 import {
   actualizarProducto, alternarProducto, crearVariante, actualizarVariante, alternarVariante,
 } from '../actions'
@@ -43,17 +45,31 @@ export default async function DetalleProducto({ params }: { params: Promise<{ id
         ← Volver a productos
       </Link>
 
-      <TituloPagina
-        titulo={producto.nombre}
-        descripcion={[marca, categoria].filter(Boolean).join(' · ') || 'Sin marca ni categoría'}
-        accion={
-          puedeEditar ? (
+      <div className="flex flex-wrap items-center gap-4">
+        <FotoProducto url={producto.imagen_url} nombre={producto.nombre} tamano="lg" />
+        <div className="min-w-0 flex-1">
+          <TituloPagina
+            titulo={producto.nombre}
+            descripcion={[marca, categoria].filter(Boolean).join(' · ') || 'Sin marca ni categoría'}
+            accion={
+              puedeEditar ? (
             <div className="flex flex-wrap gap-2">
               <Panel etiqueta="Editar producto" titulo={producto.nombre} variante="secundario">
                 <form action={actualizarProducto} className="flex flex-col gap-4">
                   <input type="hidden" name="id" value={producto.id} />
                   <Campo etiqueta="Nombre *">
                     <Input name="nombre" defaultValue={producto.nombre} required />
+                  </Campo>
+                  <Campo etiqueta="Foto" ayuda="Sube una nueva para reemplazar la actual. JPG, PNG o WEBP, máx. 5 MB.">
+                    <div className="flex items-center gap-3">
+                      <FotoProducto url={producto.imagen_url} nombre={producto.nombre} />
+                      <Input
+                        name="imagen"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="flex-1"
+                      />
+                    </div>
                   </Campo>
                   <Campo etiqueta="Tipo">
                     <Select name="tipo" defaultValue={producto.tipo}>
@@ -66,7 +82,15 @@ export default async function DetalleProducto({ params }: { params: Promise<{ id
                     <Input name="marca" defaultValue={marca} />
                   </Campo>
                   <Campo etiqueta="Categoría">
-                    <Input name="categoria" defaultValue={categoria} />
+                    <Select name="categoria" defaultValue={categoria}>
+                      {!categoria && <option value="" disabled>Selecciona una categoría</option>}
+                      {categoria && !CATEGORIAS_PRODUCTO.includes(categoria as (typeof CATEGORIAS_PRODUCTO)[number]) && (
+                        <option value={categoria}>{categoria}</option>
+                      )}
+                      {CATEGORIAS_PRODUCTO.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </Select>
                   </Campo>
                   <Campo etiqueta="Código interno">
                     <Input name="codigo" defaultValue={producto.codigo ?? ''} />
@@ -117,9 +141,11 @@ export default async function DetalleProducto({ params }: { params: Promise<{ id
                 </form>
               </Panel>
             </div>
-          ) : undefined
-        }
-      />
+              ) : undefined
+            }
+          />
+        </div>
+      </div>
 
       {variantes && variantes.length > 0 ? (
         <Tarjeta titulo="Presentaciones" sinRelleno>

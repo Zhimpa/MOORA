@@ -35,6 +35,8 @@ export const TIPOS_PRODUCTO: { valor: TipoProducto; etiqueta: string }[] = [
   { valor: 'otro', etiqueta: 'Otro' },
 ]
 
+export const CATEGORIAS_PRODUCTO = ['Masculino', 'Femenino', 'Unisex'] as const
+
 export const ROLES: { valor: Rol; etiqueta: string; descripcion: string }[] = [
   { valor: 'admin', etiqueta: 'Administrador', descripcion: 'Acceso total, incluidas finanzas y configuración' },
   { valor: 'vendedor', etiqueta: 'Vendedor', descripcion: 'Registra ventas, ve stock y clientes' },
