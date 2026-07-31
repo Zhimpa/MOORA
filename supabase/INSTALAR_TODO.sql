@@ -1448,7 +1448,10 @@ left join public.ventas ve on ve.asesor_id = a.id and ve.comision_monto > 0
 group by a.id, a.nombre, a.activo;
 
 -- Estado de resultados simplificado, mes a mes (ahora descuenta comisiones)
-create or replace view public.v_resultados_mensuales
+-- Se elimina primero: CREATE OR REPLACE no permite insertar una columna
+-- ("comisiones") en medio del orden existente, solo al final.
+drop view if exists public.v_resultados_mensuales;
+create view public.v_resultados_mensuales
 with (security_invoker = true) as
 with ventas_mes as (
   select date_trunc('month', ve.fecha)::date as mes,
