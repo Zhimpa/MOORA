@@ -3,12 +3,14 @@ import { notFound } from 'next/navigation'
 import { requerirRol } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { soles, numero, fecha } from '@/lib/format'
-import { METODOS_PAGO } from '@/lib/tipos'
-import { Aviso, Campo, EstadoDoc, Input, Select, Tarjeta, TituloPagina, Vacio } from '@/components/ui'
+import { METODOS_PAGO, PLATAFORMAS_VENTA } from '@/lib/tipos'
+import {
+  Aviso, BotonLink, Campo, EstadoDoc, Etiqueta, Input, Select, Tarjeta, TituloPagina, Vacio,
+} from '@/components/ui'
 import { Panel, ConfirmarAccion } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
 import {
-  agregarItemVenta, quitarItemVenta, aplicarDescuentoVenta,
+  agregarItemVenta, quitarItemVenta, aplicarDescuentoVenta, actualizarOrigenVenta,
   confirmarVenta, anularVenta, registrarPagoVenta,
 } from '../actions'
 
@@ -19,13 +21,13 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
 
   const { data: venta } = await supabase
     .from('ventas')
-    .select('*, clientes(nombre, tipo, telefono)')
+    .select('*, clientes(nombre, tipo, telefono), asesores_venta(id, nombre)')
     .eq('id', id)
     .single()
 
   if (!venta) notFound()
 
-  const [{ data: items }, { data: pagos }, { data: variantes }] = await Promise.all([
+  const [{ data: items }, { data: pagos }, { data: variantes }, { data: asesores }] = await Promise.all([
     supabase
       .from('venta_items')
       .select('id, cantidad, precio_unitario, subtotal, variantes(sku, nombre, stock, productos(nombre))')
@@ -37,6 +39,7 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
       .select('variante_id, sku, producto, variante, stock')
       .eq('activo', true)
       .order('producto'),
+    supabase.from('asesores_venta').select('id, nombre').eq('activo', true).order('nombre'),
   ])
 
   const pagado = (pagos ?? []).reduce((s, p) => s + Number(p.monto), 0)
@@ -44,7 +47,15 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
   const esBorrador = venta.estado === 'borrador'
   const puedeOperar = perfil.rol === 'admin' || perfil.rol === 'vendedor'
   const cliente = venta.clientes as unknown as { nombre: string; telefono: string | null } | null
+  const asesorActual = venta.asesores_venta as unknown as { id: string; nombre: string } | null
   const hoy = new Date().toISOString().slice(0, 10)
+  const etiquetaPlataforma =
+    PLATAFORMAS_VENTA.find((p) => p.valor === venta.plataforma)?.etiqueta ?? venta.plataforma
+  // Si el asesor asignado fue desactivado después, igual debe aparecer en el selector.
+  const opcionesAsesor =
+    asesorActual && !asesores?.some((a) => a.id === asesorActual.id)
+      ? [...(asesores ?? []), asesorActual]
+      : (asesores ?? [])
 
   return (
     <>
@@ -60,7 +71,16 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
         descripcion={`${fecha(venta.fecha)} · ${cliente?.nombre ?? 'Mostrador'} · ${
           venta.tipo === 'mayorista' ? 'Precio por mayor' : 'Precio por menor'
         }`}
-        accion={<EstadoDoc estado={venta.estado} />}
+        accion={
+          <div className="flex flex-wrap items-center gap-2.5">
+            <EstadoDoc estado={venta.estado} />
+            {items && items.length > 0 && (
+              <BotonLink href={`/ventas/${venta.id}/boleta`} variante="secundario">
+                Descargar boleta (PDF)
+              </BotonLink>
+            )}
+          </div>
+        }
       />
 
       {esBorrador && (
@@ -144,6 +164,98 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="flex flex-col gap-4">
+          <Tarjeta
+            titulo="Comprador y origen"
+            accion={
+              esBorrador && puedeOperar ? (
+                <Panel
+                  etiqueta="Editar"
+                  titulo="Comprador y origen"
+                  descripcion={`Venta ${venta.numero}`}
+                  variante="secundario"
+                >
+                  <form action={actualizarOrigenVenta} className="flex flex-col gap-4">
+                    <input type="hidden" name="venta_id" value={venta.id} />
+                    <Campo etiqueta="Nombre del comprador" ayuda="Útil si no es un cliente registrado.">
+                      <Input name="comprador_nombre" defaultValue={venta.comprador_nombre ?? ''} />
+                    </Campo>
+                    <Campo etiqueta="Documento de identidad" ayuda="Opcional.">
+                      <Input name="comprador_documento" defaultValue={venta.comprador_documento ?? ''} />
+                    </Campo>
+                    <Campo etiqueta="¿De dónde viene la venta?">
+                      <Select name="plataforma" defaultValue={venta.plataforma}>
+                        {PLATAFORMAS_VENTA.map((p) => (
+                          <option key={p.valor} value={p.valor}>{p.etiqueta}</option>
+                        ))}
+                      </Select>
+                    </Campo>
+                    <Campo
+                      etiqueta="¿Viene de un asesor de ventas?"
+                      ayuda="Se gestionan en Comisiones."
+                    >
+                      <Select name="asesor_id" defaultValue={venta.asesor_id ?? ''}>
+                        <option value="">— Ninguno —</option>
+                        {opcionesAsesor.map((a) => (
+                          <option key={a.id} value={a.id}>{a.nombre}</option>
+                        ))}
+                      </Select>
+                    </Campo>
+                    <Campo
+                      etiqueta="Comisión (S/)"
+                      ayuda="Se descuenta de la utilidad neta, no del total que paga el cliente."
+                    >
+                      <Input
+                        name="comision_monto"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        defaultValue={venta.comision_monto}
+                      />
+                    </Campo>
+                    <BotonEnviar className="w-full" pendienteTexto="Guardando…">
+                      Guardar
+                    </BotonEnviar>
+                  </form>
+                </Panel>
+              ) : undefined
+            }
+          >
+            <dl className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-tinta-suave">Comprador</dt>
+                <dd className="text-right font-semibold text-tinta">
+                  {venta.comprador_nombre ?? cliente?.nombre ?? 'Mostrador'}
+                </dd>
+              </div>
+              {venta.comprador_documento && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-tinta-suave">Documento</dt>
+                  <dd className="text-right text-tinta">{venta.comprador_documento}</dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-3">
+                <dt className="text-tinta-suave">Canal</dt>
+                <dd>
+                  <Etiqueta texto={etiquetaPlataforma} tono={venta.plataforma === 'tienda_fisica' ? 'gris' : 'vino'} />
+                </dd>
+              </div>
+              {asesorActual && (
+                <>
+                  <div className="flex justify-between gap-3 border-t border-borde pt-2">
+                    <dt className="text-tinta-suave">Asesor</dt>
+                    <dd className="text-right font-semibold text-tinta">{asesorActual.nombre}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-tinta-suave">Comisión</dt>
+                    <dd className="cifra text-right font-semibold text-error">
+                      − {soles(venta.comision_monto)}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          </Tarjeta>
+
           <Tarjeta titulo="Resumen">
             <dl className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between">

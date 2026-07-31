@@ -5,6 +5,7 @@ import { soles, fecha } from '@/lib/format'
 import { Campo, EstadoDoc, Input, Select, Tarjeta, TextArea, TituloPagina, Vacio } from '@/components/ui'
 import { Panel } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
+import { PLATAFORMAS_VENTA } from '@/lib/tipos'
 import { crearVenta } from './actions'
 
 export const metadata = { title: 'Ventas — MOORA' }
@@ -13,20 +14,23 @@ export default async function VentasPage() {
   const perfil = await requerirRol('admin', 'vendedor', 'contador')
   const supabase = await createClient()
 
-  const [{ data: ventas }, { data: clientes }, { data: saldos }] = await Promise.all([
+  const [{ data: ventas }, { data: clientes }, { data: saldos }, { data: asesores }] = await Promise.all([
     supabase
       .from('ventas')
-      .select('id, numero, fecha, total, estado, tipo, clientes(nombre)')
+      .select('id, numero, fecha, total, estado, tipo, plataforma, comprador_nombre, clientes(nombre)')
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(100),
     supabase.from('clientes').select('id, nombre, tipo').eq('activo', true).order('nombre'),
     supabase.from('v_cuentas_por_cobrar').select('venta_id, saldo'),
+    supabase.from('asesores_venta').select('id, nombre').eq('activo', true).order('nombre'),
   ])
 
   const saldoPorVenta = new Map((saldos ?? []).map((s) => [s.venta_id, Number(s.saldo)]))
   const puedeVender = perfil.rol === 'admin' || perfil.rol === 'vendedor'
   const hoy = new Date().toISOString().slice(0, 10)
+  const etiquetaPlataforma = (valor: string) =>
+    PLATAFORMAS_VENTA.find((p) => p.valor === valor)?.etiqueta ?? valor
 
   return (
     <>
@@ -60,6 +64,53 @@ export default async function VentasPage() {
                 <Campo etiqueta="Fecha">
                   <Input name="fecha" type="date" defaultValue={hoy} />
                 </Campo>
+
+                <div className="border-t border-borde pt-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-tinta-suave">
+                    Datos del comprador
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <Campo etiqueta="Nombre del comprador" ayuda="Útil si no es un cliente registrado.">
+                      <Input name="comprador_nombre" placeholder="Nombre y apellido" />
+                    </Campo>
+                    <Campo etiqueta="Documento de identidad" ayuda="Opcional.">
+                      <Input name="comprador_documento" placeholder="DNI / CE / RUC" />
+                    </Campo>
+                    <Campo etiqueta="¿De dónde viene la venta?">
+                      <Select name="plataforma" defaultValue="tienda_fisica">
+                        {PLATAFORMAS_VENTA.map((p) => (
+                          <option key={p.valor} value={p.valor}>{p.etiqueta}</option>
+                        ))}
+                      </Select>
+                    </Campo>
+                  </div>
+                </div>
+
+                <div className="border-t border-borde pt-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-tinta-suave">
+                    Asesor de ventas
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <Campo
+                      etiqueta="¿Viene de un asesor de ventas?"
+                      ayuda="Elige uno si esta venta se la debes a un asesor. Se gestionan en Comisiones."
+                    >
+                      <Select name="asesor_id" defaultValue="">
+                        <option value="">— Ninguno —</option>
+                        {asesores?.map((a) => (
+                          <option key={a.id} value={a.id}>{a.nombre}</option>
+                        ))}
+                      </Select>
+                    </Campo>
+                    <Campo
+                      etiqueta="Comisión (S/)"
+                      ayuda="Se descuenta de la utilidad neta, no del total que paga el cliente."
+                    >
+                      <Input name="comision_monto" type="number" step="0.01" min="0" defaultValue="0" />
+                    </Campo>
+                  </div>
+                </div>
+
                 <Campo etiqueta="Notas">
                   <TextArea name="notas" rows={2} />
                 </Campo>
@@ -92,12 +143,19 @@ export default async function VentasPage() {
                 {ventas.map((v) => {
                   const saldo = saldoPorVenta.get(v.id) ?? 0
                   const cliente =
-                    (v.clientes as unknown as { nombre: string } | null)?.nombre ?? 'Mostrador'
+                    v.comprador_nombre ??
+                    (v.clientes as unknown as { nombre: string } | null)?.nombre ??
+                    'Mostrador'
                   return (
                     <tr key={v.id} className="border-b border-borde-suave last:border-0">
                       <td className="px-2 py-3 font-semibold text-tinta">{v.numero}</td>
                       <td className="px-2 py-3 text-tinta-suave">{fecha(v.fecha)}</td>
-                      <td className="px-2 py-3">{cliente}</td>
+                      <td className="px-2 py-3">
+                        <span className="block">{cliente}</span>
+                        {v.plataforma !== 'tienda_fisica' && (
+                          <span className="text-xs text-tinta-suave">{etiquetaPlataforma(v.plataforma)}</span>
+                        )}
+                      </td>
                       <td className="cifra px-2 py-3 font-bold">{soles(v.total)}</td>
                       <td className="cifra px-2 py-3">
                         {saldo > 0 ? (
@@ -128,7 +186,9 @@ export default async function VentasPage() {
             {ventas.map((v) => {
               const saldo = saldoPorVenta.get(v.id) ?? 0
               const cliente =
-                (v.clientes as unknown as { nombre: string } | null)?.nombre ?? 'Mostrador'
+                v.comprador_nombre ??
+                (v.clientes as unknown as { nombre: string } | null)?.nombre ??
+                'Mostrador'
               return (
                 <Link
                   key={v.id}
@@ -140,6 +200,7 @@ export default async function VentasPage() {
                       <p className="truncate font-semibold text-tinta">{cliente}</p>
                       <p className="truncate text-xs text-tinta-suave">
                         {v.numero} · {fecha(v.fecha)}
+                        {v.plataforma !== 'tienda_fisica' && ` · ${etiquetaPlataforma(v.plataforma)}`}
                       </p>
                     </div>
                     <EstadoDoc estado={v.estado} />

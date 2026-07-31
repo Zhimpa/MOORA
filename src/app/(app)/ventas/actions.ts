@@ -19,6 +19,7 @@ export async function crearVenta(formData: FormData) {
 
   const clienteId = String(formData.get('cliente_id') ?? '')
   const almacen_id = await almacenPorDefecto(supabase)
+  const asesorId = String(formData.get('asesor_id') ?? '')
 
   const { data, error } = await supabase
     .from('ventas')
@@ -29,6 +30,11 @@ export async function crearVenta(formData: FormData) {
       fecha: String(formData.get('fecha') ?? '') || new Date().toISOString().slice(0, 10),
       notas: String(formData.get('notas') ?? '').trim() || null,
       usuario_id: user?.id ?? null,
+      comprador_nombre: String(formData.get('comprador_nombre') ?? '').trim() || null,
+      comprador_documento: String(formData.get('comprador_documento') ?? '').trim() || null,
+      plataforma: String(formData.get('plataforma') ?? 'tienda_fisica'),
+      asesor_id: asesorId || null,
+      comision_monto: asesorId ? Number(formData.get('comision_monto') ?? 0) : 0,
     })
     .select('id')
     .single()
@@ -36,6 +42,29 @@ export async function crearVenta(formData: FormData) {
   if (error) throw new Error(`No se pudo crear la venta: ${error.message}`)
 
   redirect(`/ventas/${data.id}`)
+}
+
+// Datos del comprador, canal de venta y comisión: editables mientras la venta esté en borrador.
+export async function actualizarOrigenVenta(formData: FormData) {
+  const venta_id = String(formData.get('venta_id') ?? '')
+  if (!venta_id) return
+
+  const asesorId = String(formData.get('asesor_id') ?? '')
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('ventas')
+    .update({
+      comprador_nombre: String(formData.get('comprador_nombre') ?? '').trim() || null,
+      comprador_documento: String(formData.get('comprador_documento') ?? '').trim() || null,
+      plataforma: String(formData.get('plataforma') ?? 'tienda_fisica'),
+      asesor_id: asesorId || null,
+      comision_monto: asesorId ? Number(formData.get('comision_monto') ?? 0) : 0,
+    })
+    .eq('id', venta_id)
+
+  if (error) throw new Error(`No se pudo actualizar el origen de la venta: ${error.message}`)
+
+  revalidatePath(`/ventas/${venta_id}`)
 }
 
 export async function agregarItemVenta(formData: FormData) {

@@ -8,6 +8,15 @@ export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'transferencia' | 'tarje
 
 export type TipoCliente = 'minorista' | 'mayorista'
 
+export type PlataformaVenta =
+  | 'tienda_fisica'
+  | 'mercado_libre'
+  | 'instagram'
+  | 'facebook'
+  | 'tiktok'
+  | 'whatsapp'
+  | 'otro'
+
 export type TipoProducto = 'perfume' | 'skincare' | 'maquillaje' | 'otro'
 
 export type TipoMovimiento =
@@ -25,6 +34,16 @@ export const METODOS_PAGO: { valor: MetodoPago; etiqueta: string }[] = [
   { valor: 'plin', etiqueta: 'Plin' },
   { valor: 'transferencia', etiqueta: 'Transferencia' },
   { valor: 'tarjeta', etiqueta: 'Tarjeta' },
+  { valor: 'otro', etiqueta: 'Otro' },
+]
+
+export const PLATAFORMAS_VENTA: { valor: PlataformaVenta; etiqueta: string }[] = [
+  { valor: 'tienda_fisica', etiqueta: 'Tienda / Mostrador' },
+  { valor: 'mercado_libre', etiqueta: 'Mercado Libre' },
+  { valor: 'instagram', etiqueta: 'Instagram' },
+  { valor: 'facebook', etiqueta: 'Facebook' },
+  { valor: 'tiktok', etiqueta: 'TikTok' },
+  { valor: 'whatsapp', etiqueta: 'WhatsApp' },
   { valor: 'otro', etiqueta: 'Otro' },
 ]
 
@@ -57,6 +76,7 @@ export interface KpisDashboard {
   num_ventas: number
   ventas_hoy: number
   utilidad_periodo: number
+  comisiones_periodo: number
   gastos_periodo: number
   por_cobrar: number
   por_pagar: number

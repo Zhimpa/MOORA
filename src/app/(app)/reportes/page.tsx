@@ -83,8 +83,9 @@ export default async function ReportesPage() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-borde text-left">
-                    {['Mes', 'Ingresos', 'Costo de ventas', 'Utilidad bruta', 'Gastos', 'Utilidad neta'].map(
-                      (c) => (
+                    {[
+                      'Mes', 'Ingresos', 'Costo de ventas', 'Utilidad bruta', 'Gastos', 'Comisiones', 'Utilidad neta',
+                    ].map((c) => (
                         <th
                           key={c}
                           className="whitespace-nowrap px-2 py-2.5 text-xs font-semibold uppercase tracking-wide text-tinta-suave"
@@ -103,6 +104,7 @@ export default async function ReportesPage() {
                       <td className="cifra px-2 py-3 text-tinta-suave">{soles(r.costo_ventas)}</td>
                       <td className="cifra px-2 py-3">{soles(r.utilidad_bruta)}</td>
                       <td className="cifra px-2 py-3 text-tinta-suave">{soles(r.gastos)}</td>
+                      <td className="cifra px-2 py-3 text-tinta-suave">{soles(r.comisiones)}</td>
                       <td
                         className={`cifra px-2 py-3 font-bold ${
                           Number(r.utilidad_neta) >= 0 ? 'text-exito' : 'text-error'
@@ -125,6 +127,7 @@ export default async function ReportesPage() {
                     ['Costo de ventas', soles(r.costo_ventas), 'text-tinta-suave'],
                     ['Utilidad bruta', soles(r.utilidad_bruta), ''],
                     ['Gastos', soles(r.gastos), 'text-tinta-suave'],
+                    ['Comisiones', soles(r.comisiones), 'text-tinta-suave'],
                     [
                       'Utilidad neta',
                       soles(r.utilidad_neta),
