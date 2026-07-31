@@ -17,14 +17,12 @@ export async function crearVenta(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const clienteId = String(formData.get('cliente_id') ?? '')
   const almacen_id = await almacenPorDefecto(supabase)
   const asesorId = String(formData.get('asesor_id') ?? '')
 
   const { data, error } = await supabase
     .from('ventas')
     .insert({
-      cliente_id: clienteId || null,
       almacen_id,
       tipo: String(formData.get('tipo') ?? 'minorista'),
       fecha: String(formData.get('fecha') ?? '') || new Date().toISOString().slice(0, 10),

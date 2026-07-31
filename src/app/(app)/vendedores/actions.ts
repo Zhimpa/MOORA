@@ -13,10 +13,11 @@ export async function crearAsesor(formData: FormData) {
     telefono: String(formData.get('telefono') ?? '').trim() || null,
     notas: String(formData.get('notas') ?? '').trim() || null,
   })
-  if (error) throw new Error(`No se pudo guardar el asesor: ${error.message}`)
+  if (error) throw new Error(`No se pudo guardar el vendedor: ${error.message}`)
 
-  revalidatePath('/comisiones')
+  revalidatePath('/vendedores')
   revalidatePath('/ventas')
+  revalidatePath('/comisiones')
 }
 
 export async function actualizarAsesor(formData: FormData) {
@@ -33,10 +34,11 @@ export async function actualizarAsesor(formData: FormData) {
       notas: String(formData.get('notas') ?? '').trim() || null,
     })
     .eq('id', id)
-  if (error) throw new Error(`No se pudo actualizar el asesor: ${error.message}`)
+  if (error) throw new Error(`No se pudo actualizar el vendedor: ${error.message}`)
 
-  revalidatePath('/comisiones')
+  revalidatePath('/vendedores')
   revalidatePath('/ventas')
+  revalidatePath('/comisiones')
 }
 
 // No se borra: se desactiva. Así no se pierde el historial de comisiones ya generadas.
@@ -49,6 +51,7 @@ export async function alternarAsesor(formData: FormData) {
   const { error } = await supabase.from('asesores_venta').update({ activo: !activo }).eq('id', id)
   if (error) throw new Error(`No se pudo cambiar el estado: ${error.message}`)
 
-  revalidatePath('/comisiones')
+  revalidatePath('/vendedores')
   revalidatePath('/ventas')
+  revalidatePath('/comisiones')
 }

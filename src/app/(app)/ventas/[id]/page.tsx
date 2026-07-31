@@ -68,9 +68,9 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
 
       <TituloPagina
         titulo={`Venta ${venta.numero}`}
-        descripcion={`${fecha(venta.fecha)} · ${cliente?.nombre ?? 'Mostrador'} · ${
-          venta.tipo === 'mayorista' ? 'Precio por mayor' : 'Precio por menor'
-        }`}
+        descripcion={`${fecha(venta.fecha)} · ${
+          venta.comprador_nombre ?? cliente?.nombre ?? 'Mostrador'
+        } · ${venta.tipo === 'mayorista' ? 'Precio por mayor' : 'Precio por menor'}`}
         accion={
           <div className="flex flex-wrap items-center gap-2.5">
             <EstadoDoc estado={venta.estado} />
@@ -190,8 +190,8 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
                       </Select>
                     </Campo>
                     <Campo
-                      etiqueta="¿Viene de un asesor de ventas?"
-                      ayuda="Se gestionan en Comisiones."
+                      etiqueta="Asesor de venta"
+                      ayuda="Se gestionan en Vendedores."
                     >
                       <Select name="asesor_id" defaultValue={venta.asesor_id ?? ''}>
                         <option value="">— Ninguno —</option>

@@ -14,14 +14,13 @@ export default async function VentasPage() {
   const perfil = await requerirRol('admin', 'vendedor', 'contador')
   const supabase = await createClient()
 
-  const [{ data: ventas }, { data: clientes }, { data: saldos }, { data: asesores }] = await Promise.all([
+  const [{ data: ventas }, { data: saldos }, { data: asesores }] = await Promise.all([
     supabase
       .from('ventas')
       .select('id, numero, fecha, total, estado, tipo, plataforma, comprador_nombre, clientes(nombre)')
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(100),
-    supabase.from('clientes').select('id, nombre, tipo').eq('activo', true).order('nombre'),
     supabase.from('v_cuentas_por_cobrar').select('venta_id, saldo'),
     supabase.from('asesores_venta').select('id, nombre').eq('activo', true).order('nombre'),
   ])
@@ -45,15 +44,22 @@ export default async function VentasPage() {
               descripcion="Se crea en borrador; los productos se agregan después."
             >
               <form action={crearVenta} className="flex flex-col gap-4">
-                <Campo etiqueta="Cliente" ayuda="Déjalo en Mostrador si es venta al paso.">
-                  <Select name="cliente_id" defaultValue="">
-                    <option value="">— Mostrador —</option>
-                    {clientes?.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre} ({c.tipo})
-                      </option>
+                <Campo
+                  etiqueta="Asesor de venta"
+                  ayuda="Quién de tu equipo atendió o refirió esta venta. Se gestionan en Vendedores."
+                >
+                  <Select name="asesor_id" defaultValue="">
+                    <option value="">— Ninguno —</option>
+                    {asesores?.map((a) => (
+                      <option key={a.id} value={a.id}>{a.nombre}</option>
                     ))}
                   </Select>
+                </Campo>
+                <Campo
+                  etiqueta="Comisión (S/)"
+                  ayuda="Se descuenta de la utilidad neta, no del total que paga el cliente."
+                >
+                  <Input name="comision_monto" type="number" step="0.01" min="0" defaultValue="0" />
                 </Campo>
                 <Campo etiqueta="Tipo de precio">
                   <Select name="tipo" defaultValue="minorista">
@@ -70,7 +76,7 @@ export default async function VentasPage() {
                     Datos del comprador
                   </p>
                   <div className="flex flex-col gap-4">
-                    <Campo etiqueta="Nombre del comprador" ayuda="Útil si no es un cliente registrado.">
+                    <Campo etiqueta="Nombre del comprador" ayuda="Útil para identificar quién compró.">
                       <Input name="comprador_nombre" placeholder="Nombre y apellido" />
                     </Campo>
                     <Campo etiqueta="Documento de identidad" ayuda="Opcional.">
@@ -82,31 +88,6 @@ export default async function VentasPage() {
                           <option key={p.valor} value={p.valor}>{p.etiqueta}</option>
                         ))}
                       </Select>
-                    </Campo>
-                  </div>
-                </div>
-
-                <div className="border-t border-borde pt-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-tinta-suave">
-                    Asesor de ventas
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    <Campo
-                      etiqueta="¿Viene de un asesor de ventas?"
-                      ayuda="Elige uno si esta venta se la debes a un asesor. Se gestionan en Comisiones."
-                    >
-                      <Select name="asesor_id" defaultValue="">
-                        <option value="">— Ninguno —</option>
-                        {asesores?.map((a) => (
-                          <option key={a.id} value={a.id}>{a.nombre}</option>
-                        ))}
-                      </Select>
-                    </Campo>
-                    <Campo
-                      etiqueta="Comisión (S/)"
-                      ayuda="Se descuenta de la utilidad neta, no del total que paga el cliente."
-                    >
-                      <Input name="comision_monto" type="number" step="0.01" min="0" defaultValue="0" />
                     </Campo>
                   </div>
                 </div>
