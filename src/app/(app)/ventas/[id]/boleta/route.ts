@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: venta } = await supabase
     .from('ventas')
-    .select('*, clientes(nombre, telefono, tipo_documento, numero_documento)')
+    .select('*, clientes(nombre, telefono, direccion, tipo_documento, numero_documento)')
     .eq('id', id)
     .single()
 
@@ -34,6 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const cliente = venta.clientes as unknown as {
     nombre: string
     telefono: string | null
+    direccion: string | null
     tipo_documento: string | null
     numero_documento: string | null
   } | null
@@ -55,6 +56,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         ? `${cliente.tipo_documento} ${cliente.numero_documento}`
         : null),
     compradorTelefono: cliente?.telefono ?? null,
+    compradorDireccion: cliente?.direccion ?? null,
     items: (items ?? []).map((it) => {
       const v = it.variantes as unknown as {
         sku: string
@@ -78,6 +80,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       metodo: METODOS_PAGO.find((m) => m.valor === p.metodo)?.etiqueta ?? p.metodo,
       monto: Number(p.monto),
     })),
+    metodosPago: [...new Set((pagos ?? []).map((p) => p.metodo))],
     pagado,
     saldo,
     notas: venta.notas,
