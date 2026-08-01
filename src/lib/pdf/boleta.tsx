@@ -24,6 +24,7 @@ export interface DatosBoleta {
   tipoPrecio: string
   canal: string
   atendidoPor: string | null
+  asesorNombre: string | null
   compradorNombre: string
   compradorDocumento: string | null
   compradorTelefono: string | null
@@ -311,7 +312,7 @@ function BoletaDocument({ datos }: { datos: DatosBoleta }) {
             </View>
             <View style={estilos.filaDato}>
               <Text style={estilos.etiquetaDato}>VENDEDOR:</Text>
-              <Text style={estilos.valorDato}>{datos.atendidoPor ?? '—'}</Text>
+              <Text style={estilos.valorDato}>{datos.asesorNombre ?? datos.atendidoPor ?? '—'}</Text>
             </View>
             <View style={estilos.filaDato}>
               <Text style={estilos.etiquetaDato}>DNI/RUC:</Text>
@@ -328,7 +329,7 @@ function BoletaDocument({ datos }: { datos: DatosBoleta }) {
 
         <View style={estilos.filaCajas}>
           <View style={estilos.caja}>
-            <Text style={estilos.cajaTitulo}>DATOS DEL VENDEDOR</Text>
+            <Text style={estilos.cajaTitulo}>DATOS DEL COMPRADOR</Text>
             <View style={estilos.cajaCuerpo}>
               <View style={estilos.filaCampo}>
                 <Text style={estilos.etiquetaCampo}>NOMBRE:</Text>

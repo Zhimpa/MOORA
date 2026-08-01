@@ -13,7 +13,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: venta } = await supabase
     .from('ventas')
-    .select('*, clientes(nombre, telefono, direccion, tipo_documento, numero_documento)')
+    .select(
+      '*, clientes(nombre, telefono, direccion, tipo_documento, numero_documento), asesores_venta(nombre)'
+    )
     .eq('id', id)
     .single()
 
@@ -39,6 +41,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     numero_documento: string | null
   } | null
 
+  const asesor = venta.asesores_venta as unknown as { nombre: string } | null
+
   const pagado = (pagos ?? []).reduce((s, p) => s + Number(p.monto), 0)
   const saldo = Number(venta.total) - pagado
 
@@ -49,6 +53,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     tipoPrecio: venta.tipo === 'mayorista' ? 'Por mayor' : 'Por menor',
     canal: PLATAFORMAS_VENTA.find((p) => p.valor === venta.plataforma)?.etiqueta ?? venta.plataforma,
     atendidoPor: vendedorPerfil?.nombre_completo ?? null,
+    asesorNombre: asesor?.nombre ?? null,
     compradorNombre: venta.comprador_nombre ?? cliente?.nombre ?? 'Cliente de mostrador',
     compradorDocumento:
       venta.comprador_documento ??

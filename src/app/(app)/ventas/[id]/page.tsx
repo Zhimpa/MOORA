@@ -360,7 +360,10 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
                         />
                       </Campo>
                       <Campo etiqueta="Método">
-                        <Select name="metodo" defaultValue="efectivo">
+                        <Select name="metodo" defaultValue="" required>
+                          <option value="" disabled>
+                            Selecciona un método
+                          </option>
                           {METODOS_PAGO.map((m) => (
                             <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
                           ))}

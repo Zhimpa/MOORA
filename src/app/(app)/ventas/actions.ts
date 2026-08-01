@@ -156,7 +156,8 @@ export async function anularVenta(formData: FormData) {
 export async function registrarPagoVenta(formData: FormData) {
   const venta_id = String(formData.get('venta_id') ?? '')
   const monto = Number(formData.get('monto') ?? 0)
-  if (!venta_id || monto <= 0) return
+  const metodo = String(formData.get('metodo') ?? '').trim()
+  if (!venta_id || monto <= 0 || !metodo) return
 
   const supabase = await createClient()
   const {
@@ -166,7 +167,7 @@ export async function registrarPagoVenta(formData: FormData) {
   const { error } = await supabase.from('pagos_venta').insert({
     venta_id,
     monto,
-    metodo: String(formData.get('metodo') ?? 'efectivo'),
+    metodo,
     fecha: String(formData.get('fecha') ?? '') || new Date().toISOString().slice(0, 10),
     referencia: String(formData.get('referencia') ?? '').trim() || null,
     usuario_id: user?.id ?? null,
