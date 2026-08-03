@@ -8,6 +8,7 @@ import {
 } from '@/components/ui'
 import { Panel } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
+import { CampoCodigoBarras } from '@/components/escaner-codigo'
 import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO } from '@/lib/tipos'
 import {
   actualizarProducto, alternarProducto, crearVariante, actualizarVariante, alternarVariante,
@@ -123,9 +124,7 @@ export default async function DetalleProducto({ params }: { params: Promise<{ id
                   <Campo etiqueta="Presentación *">
                     <Input name="nombre" required placeholder="50 ml / Tono 04" />
                   </Campo>
-                  <Campo etiqueta="Código de barras">
-                    <Input name="codigo_barras" />
-                  </Campo>
+                  <CampoCodigoBarras />
                   <div className="grid grid-cols-2 gap-3">
                     <Campo etiqueta="Precio menor (S/)">
                       <Input name="precio_menor" type="number" step="0.01" min="0" defaultValue="0" />
@@ -268,9 +267,7 @@ function PanelVariante({ variante, productoId }: { variante: Variante; productoI
         <Campo etiqueta="Presentación *">
           <Input name="nombre" defaultValue={variante.nombre} required />
         </Campo>
-        <Campo etiqueta="Código de barras">
-          <Input name="codigo_barras" defaultValue={variante.codigo_barras ?? ''} />
-        </Campo>
+        <CampoCodigoBarras defaultValue={variante.codigo_barras ?? ''} />
         <div className="grid grid-cols-2 gap-3">
           <Campo etiqueta="Precio menor (S/)">
             <Input name="precio_menor" type="number" step="0.01" min="0" defaultValue={variante.precio_venta_menor} />
