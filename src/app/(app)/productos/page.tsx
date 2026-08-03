@@ -42,7 +42,7 @@ export default async function ProductosPage({
             <Panel
               etiqueta="+ Nuevo producto"
               titulo="Nuevo producto"
-              descripcion="El stock se carga después, con una compra o un ajuste."
+              descripcion="El stock se carga después, con una entrada o un ajuste."
             >
               <form action={crearProducto} className="flex flex-col gap-4">
                 <Campo etiqueta="Nombre *">
@@ -75,32 +75,6 @@ export default async function ProductosPage({
                 <Campo etiqueta="Descripción">
                   <TextArea name="descripcion" rows={2} />
                 </Campo>
-
-                <div className="mt-1 border-t border-borde pt-4">
-                  <p className="titulo-editorial mb-1 text-lg">Primera presentación</p>
-                  <p className="mb-4 text-xs text-tinta-suave">
-                    Cada tamaño o tono se maneja por separado: ahí viven el stock y los precios.
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    <Campo etiqueta="SKU *">
-                      <Input name="sku" required placeholder="GG-80ML" />
-                    </Campo>
-                    <Campo etiqueta="Presentación">
-                      <Input name="variante" placeholder="80 ml / Tono 03" defaultValue="Única" />
-                    </Campo>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Campo etiqueta="Precio menor (S/)">
-                        <Input name="precio_menor" type="number" step="0.01" min="0" defaultValue="0" />
-                      </Campo>
-                      <Campo etiqueta="Precio mayor (S/)">
-                        <Input name="precio_mayor" type="number" step="0.01" min="0" defaultValue="0" />
-                      </Campo>
-                    </div>
-                    <Campo etiqueta="Stock mínimo" ayuda="Para avisarte cuándo reponer.">
-                      <Input name="stock_minimo" type="number" step="0.01" min="0" defaultValue="0" />
-                    </Campo>
-                  </div>
-                </div>
 
                 <BotonEnviar className="w-full">Guardar producto</BotonEnviar>
               </form>
@@ -137,6 +111,7 @@ export default async function ProductosPage({
                   }[]
                   const stockTotal = variantes.reduce((s, v) => s + Number(v.stock), 0)
                   const hayBajo = variantes.some((v) => Number(v.stock) <= Number(v.stock_minimo))
+                  const activas = variantes.filter((v) => v.activo).length
                   const marca = (p.marcas as unknown as { nombre: string } | null)?.nombre
                   const categoria = (p.categorias as unknown as { nombre: string } | null)?.nombre
 
@@ -161,7 +136,11 @@ export default async function ProductosPage({
                       </td>
                       <td className="px-2 py-3 text-tinta-suave">{marca ?? '—'}</td>
                       <td className="px-2 py-3">
-                        <Etiqueta texto={`${variantes.length}`} />
+                        {activas > 0 ? (
+                          <Etiqueta texto={`${variantes.length}`} />
+                        ) : (
+                          <Etiqueta texto="Sin presentación activa" tono="rojo" />
+                        )}
                       </td>
                       <td className="cifra px-2 py-3">
                         <span className={hayBajo ? 'font-bold text-error' : 'font-semibold'}>
@@ -186,10 +165,11 @@ export default async function ProductosPage({
           <div className="flex flex-col gap-2.5 p-4 md:hidden">
             {productos.map((p) => {
               const variantes = (p.variantes ?? []) as {
-                sku: string; stock: number; stock_minimo: number
+                sku: string; stock: number; stock_minimo: number; activo: boolean
               }[]
               const stockTotal = variantes.reduce((s, v) => s + Number(v.stock), 0)
               const hayBajo = variantes.some((v) => Number(v.stock) <= Number(v.stock_minimo))
+              const activas = variantes.filter((v) => v.activo).length
               const marca = (p.marcas as unknown as { nombre: string } | null)?.nombre
 
               return (
@@ -206,7 +186,11 @@ export default async function ProductosPage({
                         <p className="truncate text-xs text-tinta-suave">{marca ?? 'Sin marca'}</p>
                       </div>
                     </div>
-                    <Etiqueta texto={`${variantes.length} pres.`} />
+                    {activas > 0 ? (
+                      <Etiqueta texto={`${variantes.length} pres.`} />
+                    ) : (
+                      <Etiqueta texto="Sin activa" tono="rojo" />
+                    )}
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-tinta-suave">Stock total</span>

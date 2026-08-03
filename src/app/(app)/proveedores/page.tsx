@@ -123,7 +123,7 @@ export default async function ProveedoresPage() {
       ) : (
         <Vacio
           mensaje="Aún no hay proveedores registrados"
-          descripcion="Registra un proveedor para poder cargar compras y que entre stock."
+          descripcion="Registra un proveedor para poder cargar entradas y que entre stock."
         />
       )}
     </>

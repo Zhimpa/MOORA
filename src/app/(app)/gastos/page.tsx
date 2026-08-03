@@ -33,7 +33,7 @@ export default async function GastosPage() {
     <>
       <TituloPagina
         titulo="Gastos"
-        descripcion="Todo lo que sale y no es compra de mercadería"
+        descripcion="Todo lo que sale y no es entrada de mercadería"
         accion={
           esAdmin ? (
             <div className="flex flex-wrap gap-2">

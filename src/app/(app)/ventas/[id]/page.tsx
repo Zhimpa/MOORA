@@ -63,11 +63,11 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
         href="/ventas"
         className="mb-4 inline-block text-sm font-semibold text-vino underline-offset-4 hover:underline"
       >
-        ← Volver a ventas
+        ← Volver a salidas
       </Link>
 
       <TituloPagina
-        titulo={`Venta ${venta.numero}`}
+        titulo={`Salida ${venta.numero}`}
         descripcion={`${fecha(venta.fecha)} · ${
           venta.comprador_nombre ?? cliente?.nombre ?? 'Mostrador'
         } · ${venta.tipo === 'mayorista' ? 'Precio por mayor' : 'Precio por menor'}`}

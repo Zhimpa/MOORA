@@ -35,6 +35,19 @@ async function subirImagenProducto(
   return supabase.storage.from('productos').getPublicUrl(ruta).data.publicUrl
 }
 
+// SKU legible a partir del nombre + un sufijo del id, para que quede único sin pedírselo al usuario.
+function generarSkuAuto(nombre: string, productoId: string): string {
+  const base = nombre
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 16)
+  const sufijo = productoId.replace(/-/g, '').slice(0, 6).toUpperCase()
+  return `${base || 'PROD'}-${sufijo}`
+}
+
 // Categorías y marcas se escriben como texto libre: si no existen, se crean.
 // Es una pantalla menos que mantener.
 async function idPorNombre(
@@ -94,19 +107,14 @@ export async function crearProducto(formData: FormData) {
     if (errorImagen) throw new Error(`Producto creado, pero la imagen falló: ${errorImagen.message}`)
   }
 
-  // Un producto sin variantes no se puede vender: creamos la primera de una vez.
-  const sku = String(formData.get('sku') ?? '').trim()
-  if (sku) {
-    const { error: errorVariante } = await supabase.from('variantes').insert({
-      producto_id: producto.id,
-      sku,
-      nombre: String(formData.get('variante') ?? '').trim() || 'Única',
-      precio_venta_menor: Number(formData.get('precio_menor') ?? 0),
-      precio_venta_mayor: Number(formData.get('precio_mayor') ?? 0),
-      stock_minimo: Number(formData.get('stock_minimo') ?? 0),
-    })
-    if (errorVariante) throw new Error(`Producto creado, pero la variante falló: ${errorVariante.message}`)
-  }
+  // Un producto sin variantes no puede recibir stock ni precio: se crea una presentación
+  // "Única" con SKU autogenerado, editable después desde el detalle del producto.
+  const { error: errorVariante } = await supabase.from('variantes').insert({
+    producto_id: producto.id,
+    sku: generarSkuAuto(nombre, producto.id),
+    nombre: 'Única',
+  })
+  if (errorVariante) throw new Error(`Producto creado, pero la presentación falló: ${errorVariante.message}`)
 
   revalidatePath('/productos')
 }

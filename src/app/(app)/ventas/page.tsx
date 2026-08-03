@@ -8,7 +8,7 @@ import { BotonEnviar } from '@/components/boton-enviar'
 import { PLATAFORMAS_VENTA } from '@/lib/tipos'
 import { crearVenta } from './actions'
 
-export const metadata = { title: 'Ventas — MOORA' }
+export const metadata = { title: 'Salidas — MOORA' }
 
 export default async function VentasPage() {
   const perfil = await requerirRol('admin', 'vendedor', 'contador')
@@ -34,7 +34,7 @@ export default async function VentasPage() {
   return (
     <>
       <TituloPagina
-        titulo="Ventas"
+        titulo="Salidas"
         descripcion="Últimas 100 ventas registradas"
         accion={
           puedeVender ? (

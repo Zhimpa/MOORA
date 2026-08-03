@@ -52,11 +52,11 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
         href="/compras"
         className="mb-4 inline-block text-sm font-semibold text-vino underline-offset-4 hover:underline"
       >
-        ← Volver a compras
+        ← Volver a entradas
       </Link>
 
       <TituloPagina
-        titulo={`Compra ${compra.numero_documento ?? ''}`}
+        titulo={`Entrada ${compra.numero_documento ?? ''}`}
         descripcion={`${fecha(compra.fecha)} · ${proveedor?.nombre ?? 'Sin proveedor'}`}
         accion={<EstadoDoc estado={compra.estado} />}
       />
@@ -64,7 +64,7 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
       {esBorrador && (
         <div className="mb-4">
           <Aviso tipo="alerta">
-            Compra en <strong>borrador</strong>: todavía no ingresa stock. Carga los productos y
+            Entrada en <strong>borrador</strong>: todavía no ingresa stock. Carga los productos y
             confírmala para que entren al inventario.
           </Aviso>
         </div>
@@ -73,10 +73,10 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Tarjeta
-            titulo="Productos de esta compra"
+            titulo="Productos de esta entrada"
             accion={
               esBorrador && puedeOperar ? (
-                <Panel etiqueta="+ Agregar" titulo="Agregar producto" descripcion="Costo de compra">
+                <Panel etiqueta="+ Agregar" titulo="Agregar producto" descripcion="Costo de entrada">
                   <form action={agregarItemCompra} className="flex flex-col gap-4">
                     <input type="hidden" name="compra_id" value={compra.id} />
                     <Campo etiqueta="Producto">
@@ -98,7 +98,7 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
                     >
                       <Input name="costo_unitario" type="number" step="0.01" min="0" defaultValue="0" required />
                     </Campo>
-                    <BotonEnviar className="w-full">Agregar a la compra</BotonEnviar>
+                    <BotonEnviar className="w-full">Agregar a la entrada</BotonEnviar>
                   </form>
                 </Panel>
               ) : undefined
@@ -137,7 +137,7 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
               </ul>
             ) : (
               <Vacio
-                mensaje="Esta compra todavía no tiene productos"
+                mensaje="Esta entrada todavía no tiene productos"
                 descripcion="Agrega al menos uno para poder confirmarla."
               />
             )}
@@ -188,8 +188,8 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
                 </form>
 
                 <ConfirmarAccion
-                  etiqueta="Confirmar compra"
-                  titulo="¿Confirmar esta compra?"
+                  etiqueta="Confirmar entrada"
+                  titulo="¿Confirmar esta entrada?"
                   mensaje={
                     <>
                       Entrará el stock al inventario y se recalculará el costo promedio de cada
@@ -209,16 +209,16 @@ export default async function DetalleCompra({ params }: { params: Promise<{ id: 
             {compra.estado === 'confirmada' && puedeOperar && (
               <div className="mt-4 border-t border-borde pt-4">
                 <ConfirmarAccion
-                  etiqueta="Anular compra"
-                  titulo="¿Anular esta compra?"
-                  mensaje="Se sacará del inventario el stock que había ingresado y la compra quedará anulada."
+                  etiqueta="Anular entrada"
+                  titulo="¿Anular esta entrada?"
+                  mensaje="Se sacará del inventario el stock que había ingresado y la entrada quedará anulada."
                   etiquetaConfirmar="Sí, anular"
                   variante="peligro"
                   className="w-full"
                 >
                   <form action={anularCompra}>
                     <input type="hidden" name="compra_id" value={compra.id} />
-                    <input type="hidden" name="motivo" value="Anulada desde el detalle de la compra" />
+                    <input type="hidden" name="motivo" value="Anulada desde el detalle de la entrada" />
                   </form>
                 </ConfirmarAccion>
               </div>

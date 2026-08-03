@@ -10,12 +10,12 @@ type Enlace = { href: string; texto: string; inicial: string; roles: Rol[] }
 // La UI solo esconde lo que no corresponde; el permiso real lo aplica el RLS.
 const ENLACES: Enlace[] = [
   { href: '/', texto: 'Inicio', inicial: 'I', roles: ['admin', 'vendedor', 'almacen', 'contador'] },
-  { href: '/ventas', texto: 'Ventas', inicial: 'V', roles: ['admin', 'vendedor', 'contador'] },
+  { href: '/ventas', texto: 'Salidas', inicial: 'V', roles: ['admin', 'vendedor', 'contador'] },
   { href: '/vendedores', texto: 'Vendedores', inicial: 'A', roles: ['admin', 'vendedor', 'contador'] },
   { href: '/comisiones', texto: 'Comisiones', inicial: 'C', roles: ['admin', 'contador'] },
   { href: '/productos', texto: 'Productos', inicial: 'P', roles: ['admin', 'vendedor', 'almacen', 'contador'] },
   { href: '/inventario', texto: 'Inventario', inicial: 'S', roles: ['admin', 'almacen', 'contador'] },
-  { href: '/compras', texto: 'Compras', inicial: 'M', roles: ['admin', 'almacen', 'contador'] },
+  { href: '/compras', texto: 'Entradas', inicial: 'M', roles: ['admin', 'almacen', 'contador'] },
   { href: '/proveedores', texto: 'Proveedores', inicial: 'R', roles: ['admin', 'almacen', 'contador'] },
   { href: '/gastos', texto: 'Gastos', inicial: 'G', roles: ['admin', 'contador'] },
   { href: '/reportes', texto: 'Reportes', inicial: 'F', roles: ['admin', 'contador'] },

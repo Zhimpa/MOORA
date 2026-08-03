@@ -7,7 +7,7 @@ import { Panel } from '@/components/panel'
 import { BotonEnviar } from '@/components/boton-enviar'
 import { crearCompra } from './actions'
 
-export const metadata = { title: 'Compras — MOORA' }
+export const metadata = { title: 'Entradas — MOORA' }
 
 export default async function ComprasPage() {
   const perfil = await requerirRol('admin', 'almacen', 'contador')
@@ -32,13 +32,13 @@ export default async function ComprasPage() {
   return (
     <>
       <TituloPagina
-        titulo="Compras"
+        titulo="Entradas"
         descripcion="Mercadería que entra desde proveedores"
         accion={
           puedeComprar && hayProveedores ? (
             <Panel
-              etiqueta="+ Nueva compra"
-              titulo="Nueva compra"
+              etiqueta="+ Nueva entrada"
+              titulo="Nueva entrada"
               descripcion="Se crea en borrador; el stock entra al confirmarla."
             >
               <form action={crearCompra} className="flex flex-col gap-4">
@@ -72,7 +72,7 @@ export default async function ComprasPage() {
         <div className="mb-4">
           <Vacio
             mensaje="Primero registra un proveedor"
-            descripcion="Una compra siempre viene de alguien: necesitas al menos un proveedor."
+            descripcion="Una entrada siempre viene de alguien: necesitas al menos un proveedor."
             accion={<BotonLink href="/proveedores">Ir a proveedores</BotonLink>}
           />
         </div>
@@ -170,8 +170,8 @@ export default async function ComprasPage() {
       ) : (
         hayProveedores && (
           <Vacio
-            mensaje="Aún no hay compras registradas"
-            descripcion="Registra una compra y confírmala para que entre stock al inventario."
+            mensaje="Aún no hay entradas registradas"
+            descripcion="Registra una entrada y confírmala para que entre stock al inventario."
           />
         )
       )}

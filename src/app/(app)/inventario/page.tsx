@@ -14,7 +14,7 @@ const NOMBRE_MOVIMIENTO: Record<string, string> = {
   entrada: 'Entrada manual',
   salida: 'Salida manual',
   ajuste: 'Ajuste',
-  compra: 'Compra',
+  compra: 'Entrada por compra',
   venta: 'Venta',
   devolucion_cliente: 'Devolución de cliente',
   devolucion_proveedor: 'Devolución a proveedor',
