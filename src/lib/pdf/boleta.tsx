@@ -1,6 +1,11 @@
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer'
-import { soles, numero, fecha, fechaHora } from '@/lib/format'
+import fs from 'node:fs'
+import path from 'node:path'
+import { Document, Page, StyleSheet, Text, View, Image, renderToBuffer } from '@react-pdf/renderer'
+import { soles, numero, fecha } from '@/lib/format'
 import { EMPRESA } from '@/lib/empresa'
+
+// Logo de marca usado como marca de agua de fondo (sello de autenticidad) en todas las boletas.
+const MARCA_AGUA = fs.readFileSync(path.join(process.cwd(), 'public', 'marca-agua-moora.png'))
 
 export interface ItemBoleta {
   producto: string
@@ -61,6 +66,18 @@ const color = {
 
 const estilos = StyleSheet.create({
   page: { padding: 30, paddingBottom: 40, fontSize: 9, fontFamily: 'Helvetica', color: color.tinta, backgroundColor: color.crema },
+
+  // Marca de agua de fondo (sello de autenticidad)
+  marcaAgua: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marcaAguaImagen: { width: 360, height: 360, opacity: 0.13 },
 
   // Encabezado
   filaEncabezado: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -293,6 +310,10 @@ function BoletaDocument({ datos }: { datos: DatosBoleta }) {
       subject="Boleta de venta interna"
     >
       <Page size="A4" style={estilos.page}>
+        <View style={estilos.marcaAgua} fixed>
+          <Image src={MARCA_AGUA} style={estilos.marcaAguaImagen} />
+        </View>
+
         <View style={estilos.filaEncabezado}>
           <View>
             <Text style={estilos.logoNombre}>{EMPRESA.nombre}</Text>
@@ -499,7 +520,7 @@ function BoletaDocument({ datos }: { datos: DatosBoleta }) {
           <Text style={estilos.legalPie}>
             Documento de control interno generado por el sistema de gestión de {EMPRESA.nombre}. No
             constituye un comprobante de pago válido ante SUNAT ni reemplaza a una boleta o factura
-            electrónica. Generado el {fechaHora(new Date())}.
+            electrónica.
           </Text>
         </View>
       </Page>
